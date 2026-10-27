@@ -1,0 +1,6 @@
+{% extends "mensagem.html" %}
+{% block title %}{{ erro.code }} · {{ titulo }}{% endblock %}
+{% block status_icon %}<span class="mx-auto flex size-20 items-center justify-center rounded-full bg-amber-50 text-amber-700" aria-hidden="true"><svg class="size-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 7v6M12 17h.01"/></svg></span>{% endblock %}
+{% block eyebrow %}Vamos tentar novamente{% endblock %}
+{% block heading %}{{ titulo }}{% endblock %}
+{% block description %}<p>{{ descricao }}</p>{% endblock %}

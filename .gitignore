@@ -1,0 +1,28 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Frontend dependencies and local previews
+node_modules/
+.preview/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.log
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

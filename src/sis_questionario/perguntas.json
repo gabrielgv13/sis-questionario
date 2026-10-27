@@ -1,0 +1,188 @@
+[
+    {
+        "id": 1,
+        "pergunta": "Qual das matérias escolares abaixo você mais gosta de estudar e/ou tem mais interesse em aprender?",
+        "opcoes": [
+            "Biologia",
+            "Sociologia",
+            "Filosofia",
+            "Geografia",
+            "Física",
+            "Química",
+            "Matemática",
+            "Inglês",
+            "Artes",
+            "Português",
+            "Educação Física"
+        ]
+    },
+    {
+        "id": 2,
+        "pergunta": "Pensando no último livro que você leu, qual dos gêneros abaixo melhor descreve a história?",
+        "opcoes": [
+            "Ação",
+            "Aventura",
+            "Terror",
+            "Romance",
+            "Ficção Científica",
+            "Thriller",
+            "Suspense",
+            "Comédia"
+        ]
+    },
+    {
+        "id": 3,
+        "pergunta": "Quando você escolhe um filme para assistir no seu tempo livre, qual dos gêneros abaixo costuma preferir?",
+        "opcoes": [
+            "Ação",
+            "Aventura",
+            "Terror",
+            "Romance",
+            "Ficção Científica",
+            "Thriller",
+            "Suspense",
+            "Comédia"
+        ]
+    },
+    {
+        "id": 4,
+        "pergunta": "Qual dos estilos musicais abaixo você mais gosta de ouvir no dia a dia?",
+        "opcoes": [
+            "Samba",
+            "Bossa Nova",
+            "Gospel",
+            "Sertanejo",
+            "Eletrônica",
+            "Rock",
+            "Punk",
+            "Metal",
+            "Funk",
+            "Disco",
+            "Kpop"
+        ]
+    },
+    {
+        "id": 5,
+        "pergunta": "Entre as opções abaixo, que tipo de conteúdo você costuma buscar com mais frequência ao pesquisar na internet?",
+        "opcoes": [
+            "Tutoriais de estudo",
+            "Curiosidades",
+            "Notícias e atualidades",
+            "Ciência e tecnologia",
+            "Programação e informática",
+            "Jogos e dicas para jogar",
+            "Filmes, séries e animações",
+            "Música e artistas",
+            "Esportes e atividades físicas",
+            "Saúde e bem-estar",
+            "Receitas e culinária",
+            "Moda e beleza",
+            "Arte, desenho e fotografia",
+            "Livros e literatura",
+            "Viagens e lugares para conhecer",
+            "Animais e cuidados com pets",
+            "Profissões, cursos e mercado de trabalho",
+            "Produtos, preços e compras",
+            "Tutoriais de tarefas do dia a dia",
+            "Humor e memes",
+            "Outros assuntos"
+        ]
+    },
+    {
+        "id": 6,
+        "pergunta": "Qual das cores ou dos grupos de cores abaixo é o seu favorito, pensando nos seus gostos pessoais?",
+        "opcoes": [
+            "Preto",
+            "Branco",
+            "Azul",
+            "Vermelho",
+            "Verde",
+            "Amarelo",
+            "Laranja",
+            "Rosa",
+            "Roxo",
+            "Marrom",
+            "Cinza",
+            "Cores Pasteis"
+        ]
+    },
+    {
+        "id": 7,
+        "pergunta": "Em situações sociais, você se identifica mais como extrovertido, buscando conversar e interagir com outras pessoas, ou introvertido, preferindo momentos mais reservados e interações em grupos menores?",
+        "opcoes": [
+            "Extrovertido",
+            "Introvertido"
+        ]
+    },
+    {
+        "id": 8,
+        "pergunta": "Pensando na profissão que você sonha em exercer no futuro, em qual das áreas abaixo você mais gostaria de trabalhar?",
+        "opcoes": [
+            "Saúde",
+            "Veterinário",
+            "Educação",
+            "Metalúrgica",
+            "Elétrica",
+            "Automação",
+            "Redes de Computadores",
+            "Desenvolvimento de Software",
+            "Administração",
+            "Contabilidade",
+            "Pesquisa Científica",
+            "Segurança Pública",
+            "Serviços de Emergência (Bombeiros, Para-Médicos…)",
+            "Têxtil",
+            "Moda",
+            "Artes Visuais (Pintura, Desenho…)",
+            "Artes Cênicas (De cena: Dança, Teatro…)",
+            "Marketing",
+            "Design"
+        ]
+    },
+    {
+        "id": 9,
+        "pergunta": "Entre os alimentos, pratos e bebidas abaixo, qual você escolheria como seu favorito, considerando tanto as opções doces quanto as salgadas?",
+        "opcoes": [
+            "Brigadeiro",
+            "Sorvete",
+            "Milkshake",
+            "Pizza Doce",
+            "Pipoca Doce",
+            "Churros",
+            "Frutas",
+            "Salgadinho de festa",
+            "Salgadinho",
+            "Prato popular (Arroz e Feijão)",
+            "Macarronada",
+            "Strogonoff",
+            "Pizza",
+            "Hambúrguer",
+            "Sushi",
+            "Pipoca Salgada",
+            "Feijoada",
+            "Pão de Queijo"
+        ]
+    },
+    {
+        "id": 10,
+        "pergunta": "Qual dos animais abaixo você mais gostaria de ter como animal de estimação, independentemente de já ter um em casa?",
+        "opcoes": [
+            "Cachorro",
+            "Gato",
+            "Pássaro",
+            "Roedor",
+            "Réptil",
+            "Peixe",
+            "De Fazenda (Porco, Cabra, Bezerro)",
+            "Lebre / Coelho"
+        ]
+    },
+    {
+        "id": 11,
+        "pergunta": "Se você pudesse escolher um destes jogos para se divertir no seu tempo livre, qual preferiria jogar: The King Of Fighters, de luta, ou FIFA 20, de futebol?",
+        "opcoes": [
+            "The King Of Fighters",
+            "FIFA 20"
+        ]
+    }
+]

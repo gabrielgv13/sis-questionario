@@ -1,0 +1,122 @@
+Matéria escolar favorita:
+Biologia
+Sociologia
+Filosofia
+Geografia
+Física
+Química
+Matemática
+Inglês
+Artes
+Português
+Educação Física
+
+Gênero do último livro que leu:
+Ação
+Aventura
+Terror
+Romance
+Ficção Científica
+Thriller
+Suspense
+Comédia
+
+Gênero de filme favorito:
+Ação
+Aventura
+Terror
+Romance
+Ficção Científica
+Thriller
+Suspense
+Comédia
+
+
+Estilo de música favorita:
+Samba
+Bossa Nova
+Gospel
+Sertanejo
+Eletrônica
+Rock
+Punk
+Metal
+Funk
+Disco
+Kpop
+
+O que costuma pesquisar na internet:
+Tutoriais de estudo
+Curiosidades
+
+Cor favorita:
+Preto
+Branco
+Azul
+Vermelho
+Verde
+Amarelo
+Laranja
+Rosa
+Roxo
+Marrom
+Cinza
+Cores Pasteis
+
+Extrovertido ou Introvertido
+
+Área da profissão dos Sonhos:
+Saúde
+Veterinário
+Educação
+Metalúrgica
+Elétrica
+Automação
+Redes de Computadores
+Desenvolvimento de Software
+Administração
+Contabilidade
+Pesquisa Científica
+Segurança Pública
+Serviços de Emergência (Bombeiros, Para-Médicos…)
+Têxtil
+Moda
+Artes Visuais (Pintura, Desenho…)
+Artes Cênicas (De cena: Dança, Teatro…)
+Marketing
+Design
+
+Comida favorita:
+Brigadeiro
+Sorvete
+Milkshake
+Pizza Doce
+Pipoca Doce
+Churros
+Frutas
+
+Salgadinho de festa
+Salgadinho
+Prato popular (Arroz e Feijão)
+Macarronada
+Strogonoff
+Pizza
+Hambúrguer
+Sushi
+Pipoca Salgada
+Feijoada
+Pão de Queijo
+
+
+Animal de estimação favorito:
+Cachorro
+Gato
+Pássaro
+Roedor
+Réptil
+Peixe
+De Fazenda (Porco, Cabra, Bezerro)
+Lebre / Coelho
+
+Escolha entre estes 2 jogos:
+The King Of Fighters x FIFA 20

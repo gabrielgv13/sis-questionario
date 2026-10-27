@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ questionario.titulo }}{% endblock %}
+{% block content %}
+<div class="mb-9 flex flex-wrap items-center gap-3 text-xs font-medium text-slate-500" aria-label="Etapa 2 de 2">
+    <span class="flex items-center gap-2"><span class="flex size-6 items-center justify-center rounded-full bg-teal-100 text-teal-800" aria-hidden="true">✓</span> Identificação</span>
+    <span class="h-px w-8 bg-slate-300" aria-hidden="true"></span>
+    <span class="flex items-center gap-2 font-semibold text-teal-800"><span class="flex size-6 items-center justify-center rounded-full bg-teal-800 text-white" aria-hidden="true">2</span> Suas respostas</span>
+</div>
+<div class="grid grid-cols-1 items-start gap-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
+    <aside class="min-w-0 lg:sticky lg:top-8">
+        <p class="text-xs font-semibold tracking-widest text-teal-700 uppercase">Seu ponto de vista</p>
+        <h1 class="mt-3 text-3xl leading-tight font-bold tracking-tight text-slate-900">{{ questionario.titulo }}</h1>
+        <p class="mt-4 text-sm leading-6 text-slate-600">Selecione uma alternativa em cada pergunta. Ao terminar, confira suas escolhas e envie tudo de uma vez.</p>
+        <div class="mt-6 flex items-center gap-2 text-sm font-semibold text-teal-800"><span class="size-2 rounded-full bg-teal-600"></span> {{ perguntas|length }} perguntas</div>
+        <nav aria-label="Ir para uma pergunta" class="mt-6 hidden rounded-2xl border border-slate-200 bg-white p-5 lg:block">
+            <h2 class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Neste questionário</h2>
+            <div class="mt-4 grid grid-cols-4 gap-2">
+                {% for pergunta in perguntas %}
+                <a href="#questao-{{ pergunta.id_pergunta }}" aria-label="Pergunta {{ loop.index }}: {{ pergunta.enunciado }}" class="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 transition-colors hover:border-teal-700 hover:bg-teal-50 hover:text-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">{{ '%02d'|format(loop.index) }}</a>
+                {% endfor %}
+            </div>
+        </nav>
+        <p class="mt-5 text-xs leading-5 text-slate-500">Todas as perguntas são obrigatórias.</p>
+    </aside>
+    <form action="{{ url_for('submit_pesquisa') }}" method="post" class="min-w-0 space-y-5">
+        <input type="hidden" name="token_formulario" value="{{ session.token_formulario }}">
+        {% for pergunta in perguntas %}
+        <fieldset id="questao-{{ pergunta.id_pergunta }}" class="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+            <legend class="float-left mb-2 w-full max-w-full text-base leading-7 font-semibold text-slate-900 sm:text-lg">
+                <span class="mb-2 block text-xs font-bold tracking-widest text-teal-700">PERGUNTA {{ '%02d'|format(loop.index) }}</span>
+                {{ pergunta.enunciado }}
+            </legend>
+            <p class="clear-both mb-5 text-xs text-slate-500">Escolha uma opção.</p>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {% for opcao in pergunta.opcoes %}
+                <label for="pergunta_{{ pergunta.id_pergunta }}_opcao_{{ loop.index }}" class="flex min-h-13 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-700 transition-colors hover:border-teal-500 hover:bg-teal-50/50 has-checked:border-teal-700 has-checked:bg-teal-50 has-checked:font-semibold has-checked:text-teal-900 has-focus-visible:ring-2 has-focus-visible:ring-teal-700 has-focus-visible:ring-offset-2">
+                    <input type="radio" id="pergunta_{{ pergunta.id_pergunta }}_opcao_{{ loop.index }}" name="pergunta_{{ pergunta.id_pergunta }}" value="{{ opcao.id_opcao }}" required class="size-4 shrink-0 cursor-pointer accent-teal-700">
+                    <span class="min-w-0 break-words">{{ opcao.texto }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </fieldset>
+        {% endfor %}
+        <div class="rounded-2xl border border-teal-200 bg-teal-50 p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
+            <div><h2 class="font-semibold text-teal-950">Tudo pronto?</h2><p class="mt-1 text-sm leading-6 text-teal-800">Confira suas escolhas antes de concluir.</p></div>
+            <button type="submit" class="mt-5 flex min-h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-xl bg-teal-800 px-6 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-teal-900 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700 sm:mt-0 sm:w-auto sm:shrink-0">Enviar respostas <span aria-hidden="true">→</span></button>
+        </div>
+    </form>
+</div>
+{% endblock %}

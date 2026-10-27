@@ -1,0 +1,19 @@
+[project]
+name = "sis-questionario"
+version = "0.1.0"
+description = "Sistema de questionários com Flask, PostgreSQL e análise no Power BI"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "flask>=3.1.3",
+    "psycopg[binary]>=3.3.6",
+    "python-dotenv>=1.0",
+]
+
+[project.scripts]
+sis-questionario = "sis_questionario:main"
+sis-questionario-db = "sis_questionario.setup_db:main"
+
+[build-system]
+requires = ["uv_build>=0.12.15,<0.13.0"]
+build-backend = "uv_build"
