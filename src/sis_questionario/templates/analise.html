@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Análise das respostas{% endblock %}
+{% block content %}
+<div class="analise">
+    <div class="flex flex-wrap items-start justify-between gap-5">
+        <div>
+            <p class="text-xs font-semibold tracking-widest text-teal-700 uppercase">Painel de resultados</p>
+            <h1 class="mt-3 text-3xl font-bold tracking-tight text-slate-900">As escolhas, em conjunto.</h1>
+            <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-500">Clique em uma resposta para ver como esse grupo respondeu às outras perguntas. Combine escolhas para refinar a análise.</p>
+        </div>
+        <form method="post" action="{{ url_for('admin_logout') }}">
+            <input type="hidden" name="token_admin" value="{{ session.token_admin }}">
+            <button type="submit" class="analise-link">Sair da análise</button>
+        </form>
+    </div>
+    {% if questionarios %}
+    <section class="analise-painel mt-8" aria-label="Filtros">
+        <div class="flex flex-wrap items-end gap-5">
+            <form method="get" action="{{ url_for('analise') }}" class="analise-campo">
+                <label for="questionario">Questionário</label>
+                <div class="flex flex-wrap gap-2">
+                    <select name="questionario" id="questionario">
+                        {% for q in questionarios %}<option value="{{ q.id_questionario }}" {% if dados and q.id_questionario == dados.questionario.id_questionario %}selected{% endif %}>{{ q.titulo }}{% if not q.ativo %} (inativo){% endif %}</option>{% endfor %}
+                    </select>
+                    <button class="analise-link" type="submit">Abrir</button>
+                </div>
+            </form>
+            {% if jogo %}
+            <form method="get" action="{{ url_for('analise') }}" class="analise-campo">
+                <input type="hidden" name="questionario" value="{{ dados.questionario.id_questionario }}">
+                {% for p, o in selecionados if p.id_pergunta != jogo.id_pergunta %}<input type="hidden" name="opcao" value="{{ o.id_opcao }}">{% endfor %}
+                <label for="jogo">Jogo escolhido</label>
+                <div class="flex flex-wrap gap-2">
+                    <select name="opcao" id="jogo">
+                        <option value="">Todos os jogos</option>
+                        {% for o in jogo.opcoes %}<option value="{{ o.id_opcao }}" {% if o.id_opcao in filtros %}selected{% endif %}>{{ o.texto }}</option>{% endfor %}
+                    </select>
+                    <button class="analise-link" type="submit">Aplicar</button>
+                </div>
+            </form>
+            {% endif %}
+            <a class="analise-link" href="{{ link_filtro(limpar=True) }}">Limpar filtros</a>
+        </div>
+        {% if selecionados %}
+        <ul class="mt-5 flex flex-wrap gap-2" aria-label="Filtros ativos; clique para remover">
+            {% for p, o in selecionados %}
+            <li><a class="analise-filtro" href="{{ link_filtro(o.id_opcao) }}" aria-label="Remover filtro da pergunta {{ p.ordem }}: {{ o.texto }}">P{{ p.ordem }} · {{ o.texto }} <span aria-hidden="true">×</span></a></li>
+            {% endfor %}
+        </ul>
+        {% else %}<p class="mt-5 text-sm text-slate-500">Todos os envios, sem filtros de resposta.</p>{% endif %}
+    </section>
+    {% endif %}
+    {% if dados %}
+    <section class="my-7 flex flex-wrap items-baseline gap-x-4 gap-y-2" aria-label="Tamanho do grupo">
+        <p class="text-3xl font-bold text-slate-900">{{ dados.selecionados }} <span class="text-base font-normal text-slate-500">de {{ dados.total }} envios</span></p>
+        <p class="text-sm text-slate-500">Percentuais calculados sobre os {{ dados.selecionados }} envios selecionados.</p>
+    </section>
+    {% if not dados.selecionados %}
+    <p class="analise-painel mb-7" role="status">{% if dados.total %}Nenhum envio corresponde a esta combinação. Remova um filtro ou limpe todos para explorar outro grupo.{% else %}Este questionário ainda não recebeu respostas.{% endif %}</p>
+    {% endif %}
+    <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+        {% for p in dados.questionario.perguntas %}
+        <section class="analise-painel" aria-labelledby="pergunta-{{ p.id_pergunta }}">
+            <p class="text-xs font-semibold tracking-widest text-teal-700 uppercase">Pergunta {{ p.ordem }}</p>
+            <h2 id="pergunta-{{ p.id_pergunta }}" class="mt-2 text-base font-semibold leading-6 text-slate-900">{{ p.enunciado }}</h2>
+            <ul class="mt-5 space-y-2">
+                {% for o in p.opcoes %}
+                <li>
+                    <a href="{{ link_filtro(o.id_opcao) }}" class="analise-opcao{% if o.id_opcao in filtros %} selecionada{% endif %}" {% if o.id_opcao in filtros %}aria-current="true"{% endif %} aria-label="{{ 'Remover filtro' if o.id_opcao in filtros else 'Filtrar por' }}: {{ o.texto }}; {{ o.total }} envios, {{ '%.1f'|format(o.percentual) }} por cento">
+                        <span class="flex items-start justify-between gap-3"><span>{{ o.texto }}{% if o.id_opcao in filtros %} <span class="font-semibold">✓</span>{% endif %}</span><span class="shrink-0 text-xs font-semibold">{{ o.total }} · {{ ('%.1f'|format(o.percentual)).replace('.', ',') }}%</span></span>
+                        <span class="analise-trilho" aria-hidden="true"><span style="width: {{ o.percentual }}%"></span></span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endfor %}
+    </div>
+    <section class="analise-painel mt-8" aria-labelledby="titulo-envios">
+        <h2 id="titulo-envios" class="text-xl font-bold text-slate-900">Respostas do grupo</h2>
+        <p class="mt-2 text-sm leading-6 text-slate-500">Uma linha por envio, sem nomes ou e-mails. Até 50 linhas por página. Datas no horário de Brasília. “—” indica resposta ausente.</p>
+        <p class="mt-2 text-sm text-slate-500">P1, P2… correspondem às perguntas dos gráficos acima. Envios podem incluir mais de uma participação da mesma pessoa.</p>
+        {% if dados.envios %}
+        <div class="analise-tabela mt-5" tabindex="0" role="region" aria-label="Tabela de respostas; role horizontalmente para ver todas as perguntas">
+            <table>
+                <caption class="sr-only">Respostas dos envios selecionados</caption>
+                <thead><tr><th scope="col">Envio</th><th scope="col">Data</th>{% for p in dados.questionario.perguntas %}<th scope="col" title="{{ p.enunciado }}"><a href="#pergunta-{{ p.id_pergunta }}" aria-label="Pergunta {{ p.ordem }}: {{ p.enunciado }}">P{{ p.ordem }}</a></th>{% endfor %}</tr></thead>
+                <tbody>{% for e in dados.envios %}<tr><th scope="row">#{{ e.id_envio }}</th><td>{{ e.data_envio.strftime('%d/%m/%Y %H:%M') }}</td>{% for p in dados.questionario.perguntas %}<td>{{ e.respostas.get(p.id_pergunta|string, '—') }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+            </table>
+        </div>
+        <nav class="mt-5 flex flex-wrap items-center justify-between gap-3 text-sm" aria-label="Páginas de envios">
+            {% if dados.pagina > 1 %}<a class="analise-link" href="{{ link_filtro(pagina=dados.pagina-1) }}">← Anterior</a>{% endif %}
+            <span>Página {{ dados.pagina }} de {{ dados.paginas }}</span>
+            {% if dados.pagina < dados.paginas %}<a class="analise-link" href="{{ link_filtro(pagina=dados.pagina+1) }}">Próxima →</a>{% endif %}
+        </nav>
+        {% else %}<p class="mt-5 text-sm text-slate-500">Nenhum envio para exibir.</p>{% endif %}
+    </section>
+    {% else %}<p class="analise-painel mt-8">Nenhum questionário cadastrado.</p>{% endif %}
+</div>
+{% endblock %}

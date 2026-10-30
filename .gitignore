@@ -22,6 +22,7 @@ node_modules/
 .coverage
 htmlcov/
 .ruff_cache/
+.cache/
 .DS_Store
 Thumbs.db
 .idea/

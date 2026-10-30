@@ -18,7 +18,7 @@ def conectar():
         host=os.environ.get('DB_HOST', 'localhost'),
         port=int(os.environ.get('DB_PORT', '5432')),
         dbname=os.environ.get('DB_NAME', 'mydatabase'),
-        user=os.environ.get('DB_USER', 'client-app'),
+        user=os.environ.get('DB_USER', 'postgres'),
         password=senha,
         row_factory=dict_row,
     )
@@ -69,10 +69,11 @@ def listar_questionarios():
         return conn.execute('SELECT * FROM questionarios WHERE ativo ORDER BY titulo, id_questionario').fetchall()
 
 
-def carregar_questionario(id_questionario):
+def carregar_questionario(id_questionario, incluir_inativos=False):
     with conectar() as conn:
         questionario = conn.execute(
-            'SELECT * FROM questionarios WHERE id_questionario = %s AND ativo', (id_questionario,),
+            'SELECT * FROM questionarios WHERE id_questionario = %s AND (ativo OR %s)',
+            (id_questionario, incluir_inativos),
         ).fetchone()
         if not questionario:
             return None
@@ -90,6 +91,58 @@ def carregar_questionario(id_questionario):
             pergunta['opcoes'] = por_pergunta.get(pergunta['id_pergunta'], [])
         questionario['perguntas'] = perguntas
         return questionario
+
+
+def listar_questionarios_analise():
+    with conectar() as conn:
+        return conn.execute('SELECT * FROM questionarios ORDER BY titulo, id_questionario').fetchall()
+
+
+def carregar_analise(id_questionario, filtros=(), pagina=1):
+    questionario = carregar_questionario(id_questionario, incluir_inativos=True)
+    if not questionario:
+        return None
+    filtros = list(filtros)
+    opcoes = {o['id_opcao']: p['id_pergunta']
+              for p in questionario['perguntas'] for o in p['opcoes']}
+    if (any(o not in opcoes for o in filtros)
+            or len({opcoes[o] for o in filtros}) != len(filtros)):
+        raise ValueError('Selecione uma alternativa válida por pergunta.')
+    # Primeiro seleciona os envios; depois recupera também as outras respostas deles.
+    grupo = '''WITH grupo AS (
+        SELECT e.id_envio FROM envios e WHERE e.id_questionario = %s
+        AND (SELECT COUNT(DISTINCT r.id_opcao) FROM respostas r
+             WHERE r.id_envio = e.id_envio AND r.id_opcao = ANY(%s::int[])) = %s
+    ) '''
+    parametros = (id_questionario, filtros, len(filtros))
+    with conectar() as conn:
+        totais = conn.execute(grupo + '''SELECT
+            (SELECT COUNT(*) FROM envios WHERE id_questionario = %s) AS total,
+            (SELECT COUNT(*) FROM grupo) AS selecionados''',
+            (*parametros, id_questionario)).fetchone()
+        contagens = conn.execute(grupo + '''SELECT r.id_opcao, COUNT(*) AS total
+            FROM respostas r JOIN grupo g USING (id_envio) GROUP BY r.id_opcao''',
+            parametros).fetchall()
+        paginas = max(1, (totais['selecionados'] + 49) // 50)
+        pagina = min(max(1, pagina), paginas)
+        envios = conn.execute(grupo + '''SELECT e.id_envio,
+            e.data_envio AT TIME ZONE 'America/Sao_Paulo' AS data_envio,
+            COALESCE(jsonb_object_agg(r.id_pergunta::text, o.texto)
+                FILTER (WHERE r.id_pergunta IS NOT NULL), '{}'::jsonb) AS respostas
+            FROM (SELECT e.id_envio, e.data_envio FROM envios e
+                  JOIN grupo g USING (id_envio) ORDER BY e.id_envio DESC LIMIT 50 OFFSET %s) e
+            LEFT JOIN respostas r USING (id_envio)
+            LEFT JOIN opcoes o USING (id_opcao)
+            GROUP BY e.id_envio, e.data_envio ORDER BY e.id_envio DESC''',
+            (*parametros, (pagina - 1) * 50)).fetchall()
+    por_opcao = {r['id_opcao']: r['total'] for r in contagens}
+    for pergunta in questionario['perguntas']:
+        for opcao in pergunta['opcoes']:
+            opcao['total'] = por_opcao.get(opcao['id_opcao'], 0)
+            opcao['percentual'] = (100 * opcao['total'] / totais['selecionados']
+                                  if totais['selecionados'] else 0)
+    return {**totais, 'questionario': questionario, 'envios': envios,
+            'pagina': pagina, 'paginas': paginas}
 
 
 def registrar_aluno(nome, email):

@@ -21,3 +21,40 @@
         }
     }
 }
+
+@layer components {
+    .analise-painel {
+        border: 1px solid #e2e8f0;
+        border-radius: 1.25rem;
+        padding: 1.5rem;
+        background: white;
+    }
+    .analise a:focus-visible, .analise button:focus-visible, .analise select:focus-visible {
+        outline: 2px solid #0f766e;
+        outline-offset: 3px;
+    }
+    .analise-link {
+        display: inline-block;
+        border: 1px solid #cbd5e1;
+        border-radius: .65rem;
+        padding: .65rem 1rem;
+        color: #115e59;
+        background: white;
+        font-size: .875rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .analise-link:hover, .analise-opcao:hover { background: #f0fdfa; }
+    .analise-campo label { display: block; margin-bottom: .5rem; font-size: .875rem; font-weight: 600; }
+    .analise-campo select { max-width: 100%; min-width: 10rem; border: 1px solid #cbd5e1; border-radius: .65rem; padding: .65rem; background: white; font-size: .875rem; }
+    .analise-filtro { display: inline-flex; align-items: center; gap: .75rem; padding: .5rem .75rem; border-radius: .65rem; background: #ccfbf1; color: #115e59; font-size: .875rem; }
+    .analise-opcao { display: block; border: 1px solid transparent; border-radius: .65rem; padding: .65rem; font-size: .875rem; }
+    .analise-opcao.selecionada { border-color: #0f766e; background: #f0fdfa; color: #115e59; }
+    .analise-trilho { display: block; height: .5rem; margin-top: .5rem; border-radius: 1rem; background: #f1f5f9; overflow: hidden; }
+    .analise-trilho > span { display: block; height: 100%; background: #0f766e; border-radius: inherit; }
+    .analise-tabela { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: .65rem; }
+    .analise-tabela table { width: 100%; border-collapse: collapse; text-align: left; font-size: .8125rem; }
+    .analise-tabela th, .analise-tabela td { min-width: 7rem; max-width: 18rem; padding: .8rem; border-bottom: 1px solid #e2e8f0; }
+    .analise-tabela thead { background: #f8fafc; color: #0f172a; }
+    .analise-tabela tbody tr:nth-child(even) { background: #f8fafc; }
+}

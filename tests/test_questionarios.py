@@ -8,6 +8,7 @@ from unittest.mock import patch
 import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
+from werkzeug.security import generate_password_hash
 
 from sis_questionario import bd_exec as db
 from sis_questionario.app import create_app
@@ -74,6 +75,7 @@ class QuestionariosTest(unittest.TestCase):
         self.cadastrar_participante()
         self.assertEqual(self.client.post('/submit-pesquisa', data=self.formulario()).status_code, 302)
         self.assertEqual(self.quantidade('envios'), 1)
+        self.assertEqual(db.carregar_analise(self.perfil['id_questionario'])['selecionados'], 1)
         with self.assertRaises(psycopg.errors.InsufficientPrivilege), self.conn.transaction():
             self.conn.execute('UPDATE alunos SET nome = nome')
 
@@ -192,6 +194,68 @@ class QuestionariosTest(unittest.TestCase):
         for consulta in consultas.split(';'):
             if consulta.strip():
                 self.assertTrue(self.conn.execute(consulta).fetchall())
+
+    def test_analise_filtra_envios_e_preserva_outras_respostas(self):
+        aluno = db.registrar_aluno('Teste', 'teste@example.com')
+        questionario = db.carregar_questionario(self.perfil['id_questionario'])
+        perguntas = questionario['perguntas']
+        base = self.respostas()
+        jogo = perguntas[10]
+        musica = perguntas[3]
+        jogo_a, jogo_b = [o['id_opcao'] for o in jogo['opcoes']]
+        musica_a, musica_b = [o['id_opcao'] for o in musica['opcoes'][:2]]
+        for j, m in ((jogo_a, musica_a), (jogo_b, musica_a), (jogo_b, musica_b)):
+            respostas = {**base, jogo['id_pergunta']: j, musica['id_pergunta']: m}
+            db.registrar_envio(aluno, questionario['id_questionario'], respostas, uuid.uuid4())
+        dados = db.carregar_analise(questionario['id_questionario'], [jogo_b, musica_a])
+        self.assertEqual((dados['total'], dados['selecionados']), (3, 1))
+        self.assertEqual(len(dados['envios'][0]['respostas']), 11)
+        self.assertEqual(dados['questionario']['perguntas'][0]['opcoes'][0]['total'], 1)
+        self.assertEqual(dados['questionario']['perguntas'][0]['opcoes'][0]['percentual'], 100)
+        self.assertEqual(dados['questionario']['perguntas'][0]['opcoes'][1]['total'], 0)
+        self.assertNotIn('nome', dados['envios'][0])
+        self.assertEqual(db.carregar_analise(questionario['id_questionario'], [jogo_b])['selecionados'], 2)
+        self.assertEqual(db.carregar_analise(questionario['id_questionario'])['selecionados'], 3)
+        vazio = db.carregar_analise(questionario['id_questionario'], [jogo_a, musica_b])
+        self.assertEqual(vazio['selecionados'], 0)
+        self.assertEqual(vazio['envios'], [])
+        self.assertEqual(vazio['questionario']['perguntas'][0]['opcoes'][0]['percentual'], 0)
+        for filtros in ([jogo_a, jogo_b], [-1], [jogo_a, jogo_a]):
+            with self.assertRaises(ValueError):
+                db.carregar_analise(questionario['id_questionario'], filtros)
+        self.conn.execute('UPDATE questionarios SET ativo = FALSE WHERE id_questionario = %s',
+                          (questionario['id_questionario'],))
+        self.assertIsNotNone(db.carregar_analise(questionario['id_questionario']))
+        self.app.config['ADMIN_PASSWORD_HASH'] = generate_password_hash('senha-de-teste')
+        self.client.get('/admin/login')
+        with self.client.session_transaction() as sessao:
+            token = sessao['token_admin']
+        self.assertEqual(self.client.post('/admin/login', data={
+            'senha': 'senha-de-teste', 'token_admin': token}).status_code, 302)
+        pagina = self.client.get('/analise', query_string={
+            'questionario': questionario['id_questionario'], 'opcao': [jogo_b, musica_a]})
+        self.assertEqual(pagina.status_code, 200)
+        html = pagina.get_data(as_text=True)
+        self.assertIn('de 3 envios', html)
+        self.assertIn(perguntas[0]['enunciado'], html)
+        self.assertIn('100,0%', html)
+        self.assertNotIn('teste@example.com', html)
+
+    def test_analise_paginacao_e_isolamento_de_questionarios(self):
+        outro = db.cadastrar_questionario('outro', 'Outro', [
+            {'pergunta': 'Teste?', 'opcoes': ['Sim', 'Não']}])
+        aluno = db.registrar_aluno('Teste', 'teste@example.com')
+        for _ in range(51):
+            db.registrar_envio(aluno, outro, self.respostas(outro), uuid.uuid4())
+        dados = db.carregar_analise(outro, pagina=999)
+        self.assertEqual((dados['pagina'], dados['paginas']), (2, 2))
+        self.assertEqual(len(dados['envios']), 1)
+        primeira = db.carregar_analise(outro, pagina=-1)
+        self.assertEqual(len(primeira['envios']), 50)
+        self.assertGreater(primeira['envios'][-1]['id_envio'], dados['envios'][0]['id_envio'])
+        self.assertEqual(db.carregar_analise(self.perfil['id_questionario'])['total'], 0)
+        with self.assertRaises(ValueError):
+            db.carregar_analise(outro, list(self.respostas().values())[:1])
 
     def test_mesmo_navegador_nao_repete_com_outro_email(self):
         self.cadastrar_participante()

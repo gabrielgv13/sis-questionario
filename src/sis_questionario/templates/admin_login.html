@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Acesso administrativo{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-9" aria-labelledby="titulo-login">
+    <p class="text-xs font-semibold tracking-widest text-teal-700 uppercase">Área restrita</p>
+    <h1 id="titulo-login" class="mt-3 text-2xl font-bold text-slate-900">Análise das respostas</h1>
+    {% if indisponivel %}
+    <p class="mt-5" role="alert">Acesso administrativo indisponível no momento.</p>
+    {% else %}
+    <p class="mt-3 text-sm leading-6 text-slate-500">Entre com a senha de administrador para explorar os resultados. A sessão dura uma hora.</p>
+    {% if erro %}<p class="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{{ erro }}</p>{% endif %}
+    <form method="post" action="{{ url_for('admin_login') }}" class="mt-6 space-y-5">
+        <input type="hidden" name="token_admin" value="{{ session.token_admin }}">
+        <div>
+            <label for="senha" class="mb-2 block text-sm font-semibold text-slate-800">Senha de administrador</label>
+            <input id="senha" name="senha" type="password" autocomplete="current-password" required maxlength="1024" class="block w-full rounded-xl border border-slate-300 px-4 py-3 text-base focus:border-teal-700 focus:outline-2 focus:outline-teal-700">
+        </div>
+        <button class="w-full cursor-pointer rounded-xl bg-teal-800 px-5 py-3 font-semibold text-white hover:bg-teal-900" type="submit">Entrar na análise</button>
+    </form>
+    {% endif %}
+</section>
+{% endblock %}
