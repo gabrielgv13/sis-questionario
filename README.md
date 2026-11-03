@@ -98,6 +98,30 @@ filtros**. **Atualizar** busca novos envios preservando os filtros. As alternati
 também são botões acessíveis pelo teclado. O painel só retorna dados agregados,
 sem nomes ou e-mails. Use **Sair** para encerrar o acesso administrativo.
 
+## Exportar gráficos
+
+No admin, clique em **Exportar gráficos**. Ao abrir, o painel marca **Exportar
+com filtro atual** quando houver seleções de respostas ou perfis; caso contrário,
+marca **Exportar simples**. As duas opções são exclusivas. O modo simples ignora
+todos os filtros; o modo com filtro atual mantém inclusive filtros de perguntas
+que não foram escolhidas para exportar.
+
+Escolha PDF (padrão), CSV ou JSON em **Saída de exportação**. No menu colapsável,
+**Todos** é a seleção padrão e inclui o gráfico de perfis quando disponível.
+Selecione questões individuais para exportar apenas parte dos gráficos; selecionar
+todas individualmente volta para **Todos**. Sem seleção, a exportação fica
+desabilitada. Cada gráfico mantém sua ordenação e as cores das alternativas.
+
+O PDF inclui pizzas, todas as legendas e tabelas de contagens e percentuais,
+com paginação. CSV (UTF-8 com BOM, separado por ponto e vírgula) e JSON exportam
+os dados agregados. Todos os formatos identificam questionário, instante de
+geração em UTC, modo e filtros aplicados, sem nomes ou e-mails de participantes.
+As opções são capturadas ao clicar em **Exportar**, e as contagens são consultadas
+novamente no banco em um único snapshot. O download exige autenticação de admin.
+
+A geração de PDF usa ReportLab; após atualizar, execute `uv sync` para instalar
+as dependências novas.
+
 ## Devolutiva e classificação de perfis
 
 Depois de atualizar o código, execute `uv run sis-questionario-db` antes de

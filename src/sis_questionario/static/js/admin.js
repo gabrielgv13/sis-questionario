@@ -10,6 +10,77 @@
   const showResult = document.querySelector('#show-result');
   const number = new Intl.NumberFormat('pt-BR');
   const legendOrders = new Map();
+  let currentCharts = [], exporting = false;
+  const exportPanel = document.querySelector('#export-panel');
+  const openExport = document.querySelector('#open-export');
+  const exportChoices = document.querySelector('#export-choices');
+  const downloadExport = document.querySelector('#download-export');
+  const exportStatus = document.querySelector('#export-status');
+  const modes = [...document.querySelectorAll('[name="export-mode"]')];
+  modes.forEach(input => input.addEventListener('change', () => {
+    modes.forEach(other => { other.checked = other === input; });
+  }));
+  function exportSelection() {
+    const all = exportChoices.querySelector('[value="all"]');
+    const options = [...exportChoices.querySelectorAll('input:not([value="all"])')];
+    if (options.length && options.every(input => input.checked)) {
+      all.checked = true;
+      options.forEach(input => { input.checked = false; });
+    }
+    const count = all?.checked ? options.length : options.filter(input => input.checked).length;
+    document.querySelector('#export-summary').textContent = `Gráficos para exportar: ${all?.checked ? 'Todos' : count + ' selecionados'}`;
+    downloadExport.disabled = exporting || !count;
+    return all?.checked ? 'all' : options.filter(input => input.checked).map(input => input.value);
+  }
+  openExport.addEventListener('click', () => {
+    exportPanel.hidden = !exportPanel.hidden;
+    openExport.setAttribute('aria-expanded', String(!exportPanel.hidden));
+    if (exportPanel.hidden) return;
+    const filtered = profileFilters.length > 0 || Object.values(filters).some(values => values.length);
+    modes.forEach(input => { input.checked = input.value === (filtered ? 'filtered' : 'simple'); });
+    document.querySelector('#export-format').value = 'pdf';
+    exportStatus.textContent = '';
+    exportChoices.replaceChildren();
+    for (const choice of [{id: 'all', title: 'Todos'}, ...currentCharts]) {
+      const label = element('label');
+      const input = element('input');
+      input.type = 'checkbox'; input.value = String(choice.id); input.checked = choice.id === 'all';
+      input.addEventListener('change', () => {
+        if (input.checked) {
+          if (input.value === 'all') exportChoices.querySelectorAll('input').forEach(other => { other.checked = other === input; });
+          else exportChoices.querySelector('[value="all"]').checked = false;
+        }
+        exportSelection();
+      });
+      label.append(input, document.createTextNode(' ' + choice.title));
+      exportChoices.append(label);
+    }
+    exportSelection();
+  });
+  exportPanel.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (exporting) return;
+    const selected = exportSelection();
+    if (Array.isArray(selected) && !selected.length) { exportStatus.textContent = 'Selecione pelo menos um gráfico.'; return; }
+    const quizId = Number(quiz.value), format = document.querySelector('#export-format').value;
+    const payload = {quiz_id: quizId, format, mode: modes.find(input => input.checked).value,
+      charts: selected, filters, profiles: profileFilters,
+      orders: Object.fromEntries(currentCharts.map(chart => [String(chart.id), legendOrders.get(`${quiz.value}:${chart.id}`) || 'desc']))};
+    exporting = true; downloadExport.disabled = true;
+    exportStatus.textContent = 'Gerando arquivo…';
+    try {
+      const response = await fetch(root.dataset.export, {method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': root.dataset.token}, body: JSON.stringify(payload)});
+      if (response.status === 401) { window.location.assign('/admin/login'); return; }
+      if (!response.ok) throw new Error('Não foi possível exportar. Confira as opções e tente novamente.');
+      const url = URL.createObjectURL(await response.blob());
+      const link = element('a'); link.href = url; link.download = `questionario-${quizId}.${format}`;
+      document.body.append(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      exportStatus.textContent = 'Arquivo gerado. Download iniciado.';
+    } catch (error) { exportStatus.textContent = error.message; }
+    finally { exporting = false; exportSelection(); }
+  });
   function element(tag, text, className) {
     const node = document.createElement(tag);
     if (text !== undefined) node.textContent = text;
@@ -85,6 +156,7 @@
     const focused = document.activeElement?.dataset.focus;
     const scrollPositions = new Map([...charts.querySelectorAll('.pie-legend')].map(legend => [legend.dataset.question, legend.scrollTop]));
     charts.setAttribute('aria-busy', 'true');
+    openExport.disabled = true;
     showResult.disabled = true;
     charts.querySelectorAll('button').forEach(button => { button.disabled = true; });
     status.className = '';
@@ -98,6 +170,8 @@
       if (!response.ok) throw new Error('Não foi possível carregar os resultados. Atualize a página ou tente novamente.');
       const data = await response.json();
       if (current !== version) return;
+      currentCharts = data.charts;
+      openExport.disabled = !currentCharts.length;
       setting.hidden = !data.algorithm;
       showResult.checked = data.show_result;
       showResult.disabled = false;
@@ -197,7 +271,7 @@
       if (current === version) charts.setAttribute('aria-busy', 'false');
     }
   }
-  quiz.addEventListener('change', () => { filters = {}; profileFilters = []; setting.hidden = true; charts.replaceChildren(); chips.replaceChildren(); update(); });
+  quiz.addEventListener('change', () => { filters = {}; profileFilters = []; setting.hidden = true; exportPanel.hidden = true; openExport.setAttribute('aria-expanded', 'false'); charts.replaceChildren(); chips.replaceChildren(); update(); });
   document.querySelector('#clear-filters').addEventListener('click', () => { filters = {}; profileFilters = []; update(); });
   document.querySelector('#refresh-results').addEventListener('click', update);
   showResult.addEventListener('change', async () => {

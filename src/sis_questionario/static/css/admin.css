@@ -5,6 +5,7 @@
 .answer-pie svg{display:block;width:100%;height:auto;overflow:visible}
 .pie-percent{font:600 12px system-ui,sans-serif;fill:#334155}
 .legend-panel{min-width:0}
+.export-panel{margin:1rem 0}.export-panel[hidden]{display:none}.export-panel fieldset{display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:1rem}.export-panel legend{font-weight:700;margin-bottom:.5rem}.export-panel select{border:1px solid #94a3b8;border-radius:.5rem;padding:.5rem;margin:0 .5rem 1rem}.export-panel details{margin-bottom:1rem}.export-panel summary{cursor:pointer;font-weight:600}.export-choices{display:flex;flex-direction:column;gap:.6rem;padding:1rem 0;max-height:22rem;overflow-y:auto}.export-panel input[type=checkbox]{accent-color:#0f766e}.export-panel p{font-size:.85rem;margin:.6rem 0}
 #admin-dashboard .legend-order{display:block;margin:0 3px .65rem;font-size:.75rem;font-weight:600;color:#115e59}
 .pie-empty{font-size:.8rem;color:#475569;text-align:center;padding:1rem}
 .pie-legend{--legend-row:56px;--legend-gap:8px;min-width:0;display:flex;flex-direction:column;gap:var(--legend-gap);max-height:calc(8 * var(--legend-row) + 7 * var(--legend-gap));overflow-y:auto;scroll-behavior:smooth;scroll-snap-type:y proximity;scroll-padding:0;scrollbar-gutter:stable;overscroll-behavior-y:contain;padding-inline:3px}

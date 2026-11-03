@@ -3,7 +3,7 @@ import os
 import secrets
 from functools import wraps
 
-from flask import Blueprint, abort, jsonify, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, jsonify, redirect, render_template, request, session, url_for, Response
 from werkzeug.security import check_password_hash
 
 from . import bd_exec as db
@@ -108,3 +108,21 @@ def private_response(response):
     response.headers['Cache-Control'] = 'no-store'
     response.headers['X-Frame-Options'] = 'DENY'
     return response
+
+
+@admin.post('/api/export')
+@protected
+def export():
+    from .exportacao import preparar, gerar_csv, gerar_json, gerar_pdf
+    check_csrf(request.headers.get('X-CSRF-Token'))
+    data = request.get_json()
+    try:
+        result = preparar(data)
+    except ValueError as error:
+        return jsonify(error=str(error)), 400
+    kind = data['format']
+    generators = {'pdf': (gerar_pdf, 'application/pdf'), 'csv': (gerar_csv, 'text/csv; charset=utf-8'),
+                  'json': (gerar_json, 'application/json; charset=utf-8')}
+    generate, content_type = generators[kind]
+    return Response(generate(result), content_type=content_type, headers={
+        'Content-Disposition': f'attachment; filename="questionario-{data["quiz_id"]}.{kind}"'})

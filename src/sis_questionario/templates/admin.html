@@ -2,7 +2,7 @@
 {% block title %}Painel de respostas{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
-<div id="admin-dashboard" data-endpoint="{{ url_for('admin.results') }}" data-settings="{{ url_for('admin.settings') }}" data-token="{{ token }}">
+<div id="admin-dashboard" data-endpoint="{{ url_for('admin.results') }}" data-settings="{{ url_for('admin.settings') }}" data-export="{{ url_for('admin.export') }}" data-token="{{ token }}">
   <div class="admin-heading">
     <div><p class="admin-eyebrow">ANÁLISE DE RESPOSTAS</p><h1>Painel de questionários</h1></div>
     <form method="post" action="{{ url_for('admin.logout') }}"><input type="hidden" name="csrf_token" value="{{ token }}"><button type="submit">Sair</button></form>
@@ -23,6 +23,21 @@
   <p>Clique nas legendas coloridas para cruzar respostas. Na mesma pergunta, as opções são combinadas por “ou”; entre perguntas, por “e”. Todos os gráficos consideram todos os filtros, inclusive os da própria pergunta. Clique novamente para desmarcar.</p>
   <div id="active-filters" aria-label="Filtros ativos"></div>
   <p id="admin-status" role="status" aria-live="polite"></p>
+  <button id="open-export" type="button" aria-expanded="false" aria-controls="export-panel" disabled>Exportar gráficos</button>
+  <form id="export-panel" class="admin-card export-panel" hidden>
+    <fieldset><legend>Dados para exportar</legend>
+      <label><input type="checkbox" name="export-mode" value="filtered"> Exportar com filtro atual</label>
+      <label><input type="checkbox" name="export-mode" value="simple"> Exportar simples</label>
+    </fieldset>
+    <label for="export-format">Saída de exportação:</label>
+    <select id="export-format"><option value="pdf">PDF</option><option value="csv">CSV</option><option value="json">JSON</option></select>
+    <details><summary id="export-summary">Gráficos para exportar: Todos</summary>
+      <div id="export-choices" class="export-choices"></div>
+    </details>
+    <p>O modo simples ignora filtros. O modo com filtro atual mantém todos os filtros, mesmo das perguntas não exportadas.</p>
+    <button id="download-export" type="submit">Exportar</button>
+    <p id="export-status" role="status" aria-live="polite"></p>
+  </form>
   <div id="charts" class="admin-charts" aria-busy="false"></div>
 </div>
 <script src="{{ url_for('static', filename='js/admin.js') }}" defer></script>
