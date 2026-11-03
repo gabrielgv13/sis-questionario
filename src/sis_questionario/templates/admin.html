@@ -2,10 +2,10 @@
 {% block title %}Painel de respostas{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% include 'admin_navigation.html' %}
 <div id="admin-dashboard" data-endpoint="{{ url_for('admin.results') }}" data-settings="{{ url_for('admin.settings') }}" data-export="{{ url_for('admin.export') }}" data-token="{{ token }}">
   <div class="admin-heading">
-    <div><p class="admin-eyebrow">ANÁLISE DE RESPOSTAS</p><h1>Painel de questionários</h1></div>
-    <form method="post" action="{{ url_for('admin.logout') }}"><input type="hidden" name="csrf_token" value="{{ token }}"><button type="submit">Sair</button></form>
+    <div><p class="admin-eyebrow">RESULTADOS</p><h1>Análise de respostas</h1></div>
   </div>
   <div class="admin-toolbar admin-card">
     <label for="quiz">Questionário</label>

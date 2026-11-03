@@ -38,7 +38,33 @@ class AdminAccessTest(unittest.TestCase):
 
     def test_unauthenticated_access(self):
         self.assertEqual(self.client.get('/admin').status_code, 302)
+        self.assertEqual(self.client.get('/admin/analise').status_code, 302)
+        self.assertEqual(self.client.get('/admin/questionarios').status_code, 302)
         self.assertEqual(self.client.post('/admin/api/results', json={'quiz_id': 1}).status_code, 401)
+
+    def test_admin_home_navigation_and_management_preview(self):
+        response = self.login()
+        self.assertTrue(response.location.endswith('/admin/'))
+        with patch.object(db, 'listar_questionarios_admin') as listing:
+            home = self.client.get('/admin')
+            listing.assert_not_called()
+        self.assertIn(b'/admin/analise', home.data)
+        self.assertIn(b'/admin/questionarios', home.data)
+        questions = [dict(id_questionario=1, titulo='Perfil <teste>', codigo='perfil', ativo=True,
+                          algoritmo='perfil_v1', exibir_resultado=False)]
+        with patch.object(db, 'listar_questionarios_admin', return_value=questions):
+            analysis = self.client.get('/admin/analise')
+            management = self.client.get('/admin/questionarios')
+        self.assertEqual(analysis.status_code, 200)
+        self.assertIn(b'id="admin-dashboard"', analysis.data)
+        self.assertEqual(management.status_code, 200)
+        self.assertIn(b'Perfil &lt;teste&gt;', management.data)
+        self.assertIn(b'id="management-confirm" class="admin-button" type="button" disabled', management.data)
+        self.assertIn(b'data-management-action="import"', management.data)
+        self.assertIn(b'data-management-action="export"', management.data)
+        self.assertIn(b'data-management-action="delete"', management.data)
+        self.assertNotIn(b'id="admin-dashboard"', management.data)
+        self.assertEqual(management.headers['Cache-Control'], 'no-store')
 
     def test_login_requires_configuration_correct_password_and_csrf(self):
         self.assertEqual(self.client.post('/admin/login', data={'password': 'test-admin-password'}).status_code, 400)
@@ -160,7 +186,7 @@ class AdminAggregationTest(unittest.TestCase):
 
     def test_profile_chart_and_bidirectional_filters(self):
         self.conn.autocommit = True
-        self.conn.execute("UPDATE questionarios SET algoritmo = 'perfil_sesi_v1' WHERE id_questionario = 1")
+        self.conn.execute("UPDATE questionarios SET algoritmo = 'perfil_v1' WHERE id_questionario = 1")
         self.conn.execute('''UPDATE envios SET resultado = jsonb_build_object('category',
             CASE id_envio WHEN 1 THEN 'tecnologico' ELSE 'misto' END) WHERE id_envio IN (1,2)''')
         self.conn.autocommit = False

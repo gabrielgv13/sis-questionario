@@ -1,6 +1,6 @@
 # Sistema de questionário
 
-Aplicação com Flask, PostgreSQL/Psycopg, Tailwind CSS e relatório Power BI.
+Aplicação com Flask, PostgreSQL/Psycopg, Tailwind CSS e painel de análise integrado.
 Permite cadastrar participantes, escolher questionários e responder todas as
 perguntas em um único formulário. Cada navegador pode enviar uma vez por questionário.
 
@@ -14,11 +14,24 @@ Após clonar, com o PostgreSQL local configurado com usuário e senha `postgres`
 
 ```powershell
 uv sync
-uv run sis-questionario-db
 uv run sis-questionario
 ```
 
 Abra http://127.0.0.1:5000. Pressione `Ctrl+C` para encerrar.
+
+O comando padrão prepara as tabelas e inicia sem cadastrar questionários. Em
+um banco novo, o sistema fica vazio, pronto para importar questionários no admin.
+Para iniciar com o **Questionário de Perfil** e sua classificação prontos:
+
+```powershell
+uv run sis-questionario-perfil
+```
+
+Os dois comandos preparam o banco automaticamente. O comando com Perfil cadastra
+somente o questionário, sem participantes fictícios. Reexecutá-lo não duplica ou
+sobrescreve perguntas existentes. Iniciar pelo comando padrão depois disso
+preserva os questionários e respostas; nenhum comando de inicialização apaga dados.
+`uv run sis-questionario-db` permanece disponível para preparar somente a estrutura.
 
 O `.env` é opcional. Os padrões locais são `DB_HOST=localhost`, `DB_PORT=5432`,
 `DB_NAME=mydatabase`, `DB_USER=postgres` e `DB_PASSWORD=postgres`.
@@ -40,8 +53,10 @@ O SQL é SQL PostgreSQL comum, sem comandos específicos do `psql`.
 O usuário do setup precisa poder criar o banco e suas tabelas.
 O setup não cria usuários; `DB_USER` deve existir no servidor.
 
-O aplicativo cadastra as perguntas do JSON na primeira execução usando `SELECT`
-e `INSERT`. Para uma conta restrita na hospedagem, conceda `CONNECT` no banco,
+Somente `sis-questionario-perfil` cadastra o Perfil usando `SELECT` e `INSERT`.
+Criar a aplicação Flask diretamente não prepara nem popula o banco. Em uma
+hospedagem com conta restrita, execute a preparação como administrador antes
+de servir a aplicação com `sis_questionario.app:create_app`. Conceda `CONNECT` no banco,
 `USAGE` no schema `public` e nas sequências, e `SELECT` e `INSERT` nas seis tabelas.
 
 ## Painel administrativo
@@ -52,13 +67,27 @@ editor SQL do pgAdmin. Prepare as tabelas antes com `uv run sis-questionario-db`
 O script usa INSERTs para cadastrar o questionário de perfil, suas perguntas e
 alternativas, 120 participantes fictícios e 1.320 respostas. Pode ser reexecutado
 sem duplicar os envios de exemplo e não altera respostas existentes. Os envios
-fictícios incluem resultados de `perfil_sesi_v1`, permitindo testar o gráfico
+fictícios incluem resultados de `perfil_v1`, permitindo testar o gráfico
 de perfis e seus filtros. Reexecutar preenche resultados ausentes de exemplos
 antigos apenas quando suas respostas correspondem às do script, preservando
 resultados já salvos e a configuração de devolutiva do admin. Os dados
 de exemplo passam a fazer parte das estatísticas do painel.
 
-Acesse http://127.0.0.1:5000/admin para explorar os resultados. O painel exige
+Acesse http://127.0.0.1:5000/admin para abrir a página inicial administrativa.
+Ela oferece **Análise de respostas** (`/admin/analise`) e **Gerenciar questionários**
+(`/admin/questionarios`). A análise mantém os gráficos, filtros e exportação de
+resultados. O gerenciamento lista os questionários cadastrados, com busca por
+título ou código e filtro de status. A importação e a exportação JSON estão
+disponíveis no [formato versionado de questionário](docs/formato-questionario.md),
+com estrutura salva em `questionarios.documento` (JSONB). Há um
+[exemplo completo do Perfil](docs/questionario_perfil.json) e um
+[JSON Schema](docs/questionario.schema.json). A importação não sobrescreve códigos
+existentes; para importar uma cópia, altere o código no arquivo. Execute
+`uv run sis-questionario-db` para migrar os questionários existentes antes de usar.
+A exclusão continua apenas como prévia. Sua janela informa que a futura ação
+também removerá os envios e as respostas associados.
+
+O painel exige
 uma senha própria, independente das credenciais do PostgreSQL. Para habilitar:
 
 1. Gere o hash da senha (o comando solicita a senha sem exibi-la):
@@ -127,7 +156,7 @@ as dependências novas.
 Depois de atualizar o código, execute `uv run sis-questionario-db` antes de
 reiniciar o aplicativo. A migração adiciona a configuração nos questionários e
 um resultado JSON por envio, sem remover dados. O Questionário de Perfil recebe
-o algoritmo `perfil_sesi_v1` e a devolutiva habilitada na primeira migração.
+o algoritmo `perfil_v1` e a devolutiva habilitada na primeira migração.
 Reexecutar o setup preserva a escolha posterior do administrador.
 
 No admin, selecione o questionário e marque ou desmarque **Exibir o perfil ao
@@ -152,9 +181,9 @@ em **Perfil misto**. Envios sem resultado salvo aparecem em **Sem classificaçã
 o aplicativo não os recalcula automaticamente. O script de exemplos agora inclui
 a classificação e pode preencher resultados ausentes dos seus próprios envios.
 
-Os pesos estão em `src/sis_questionario/perfil_sesi_v1.json`, associados aos
+Os pesos estão em `src/sis_questionario/perfil_v1.json`, associados aos
 textos das perguntas e alternativas, sem depender dos IDs do banco. A referência
-original está em [perfil-sesi-regras-originais.md](docs/perfil-sesi-regras-originais.md).
+original está em [perfil-regras-originais.md](docs/perfil-regras-originais.md).
 Interpretações adotadas: Educação dá +10 a Tecnológicos, +20 aos demais exceto
 Otakus; comida dá +5 a todos, e Prato popular soma mais +10 a Tecnológicos.
 Adições e subtrações são cumulativas, inclusive nas duas opções de jogos.
@@ -162,7 +191,7 @@ A pergunta 5 continua permitindo uma única resposta. Mudanças futuras nos peso
 devem criar uma nova versão para preservar o significado dos resultados salvos.
 
 Com uma conta PostgreSQL restrita, o controle do admin precisa também de
-`UPDATE (exibir_resultado)` em `questionarios`; o fluxo de participação continua
+`UPDATE (exibir_resultado, documento)` em `questionarios`; o fluxo de participação continua
 funcionando apenas com `SELECT` e `INSERT`, além das permissões de sequências.
 
 ## Estrutura do projeto
@@ -174,13 +203,13 @@ src/sis_questionario/
     config.py          # Leitura do .env
     setup_db.py        # Execução do SQL pelo administrador
     banco.sql          # Único arquivo SQL do projeto
-    perguntas.json     # Carga inicial das perguntas
+    perguntas.json     # Carga opcional do Questionário de Perfil
+    perfil_v1.json     # Pesos versionados da classificação
     templates/         # Páginas HTML
     static/css/app.css # Tailwind compilado
 assets/tailwind.css    # Fonte dos estilos
 docs/                  # Guia de análise e consultas de exemplo
 tests/                 # Testes de integração
-análise-dos-fatos.pbix  # Relatório Power BI preservado
 ```
 
 As seis tabelas são `alunos`, `questionarios`, `perguntas`, `opcoes`, `envios` e
@@ -190,7 +219,8 @@ entre questionário, pergunta e alternativa.
 
 ## Perguntas e outros questionários
 
-O JSON cadastra o questionário `perfil` uma única vez. Reiniciar não duplica dados;
+O comando `uv run sis-questionario-perfil` usa o JSON para cadastrar `perfil`
+uma única vez. O comando padrão não faz essa carga. Reiniciar não duplica dados;
 alterar o JSON não modifica perguntas já importadas. Para cadastrar outro questionário,
 use um novo código:
 
@@ -217,8 +247,8 @@ Envios anteriores ao recurso permanecem com identificador vazio.
 
 ## Power BI
 
-O arquivo [`análise-dos-fatos.pbix`](análise-dos-fatos.pbix) faz parte do repositório.
-No Power BI, configure a fonte PostgreSQL com os valores de `DB_HOST`, `DB_PORT`,
+Relatórios externos podem ser criados conectando ao PostgreSQL; não é necessário
+um arquivo Power BI para executar o sistema. Configure a fonte com `DB_HOST`, `DB_PORT`,
 `DB_NAME` e o usuário configurado em `DB_USER`. Informe a senha da sua configuração local.
 Consulte [o guia de relacionamentos e medidas](docs/power-bi.md) e
 [as consultas SQL de exemplo](docs/consultas.md).
@@ -250,6 +280,15 @@ de envio, validação, bloqueio por navegador e execução com apenas `SELECT` e
 
 ## Arquivos para o GitHub
 
-Inclua código, `banco.sql`, `.env.example`, lockfiles, CSS compilado e o `.pbix`.
+Inclua código, `banco.sql`, `.env.example`, lockfiles, CSS compilado, testes e `docs/`.
 O `.gitignore` exclui `.env`, dependências, caches, logs e prévias locais.
-O projeto foi preparado localmente; criar o repositório e fazer o push são etapas separadas.
+Os arquivos de build de CSS são preservados para manutenção; Node.js não é
+necessário em tempo de execução. Artefatos externos e duplicatas sem uso foram
+removidos; o conteúdo de `docs/` foi mantido, com nomes institucionais neutralizados.
+
+## Compatibilidade de versões
+
+A classificação passa a usar `perfil_v1`. A preparação migra automaticamente os
+identificadores antigos nas configurações, documentos JSONB e resultados salvos,
+sem recalcular pontos ou alterar respostas. Arquivos JSON exportados pela versão
+anterior também são normalizados durante a importação. Os pesos permanecem iguais.

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "codigo": "substitua-pelo-codigo-unico",
+  "titulo": "Substitua pelo título do questionário",
+  "ativo": false,
+  "algoritmo": null,
+  "exibir_resultado": false,
+  "perguntas": [
+    {
+      "enunciado": "Substitua pelo enunciado da primeira pergunta.",
+      "opcoes": [
+        "Substitua pela primeira alternativa",
+        "Substitua pela segunda alternativa",
+        "Substitua pela terceira alternativa"
+      ]
+    },
+    {
+      "enunciado": "Substitua pelo enunciado da segunda pergunta.",
+      "opcoes": [
+        "Substitua pela primeira alternativa desta pergunta",
+        "Substitua pela segunda alternativa desta pergunta"
+      ]
+    }
+  ]
+}

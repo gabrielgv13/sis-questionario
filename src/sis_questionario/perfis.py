@@ -1,11 +1,12 @@
-"""Versioned SESI heuristic. Weights are keyed by question and option text."""
+"""Versioned profile heuristic. Weights are keyed by question and option text."""
 import json
 from pathlib import Path
 
-REGRAS = json.loads(Path(__file__).with_name('perfil_sesi_v1.json').read_text(encoding='utf-8'))
+REGRAS = json.loads(Path(__file__).with_name('perfil_v1.json').read_text(encoding='utf-8'))
 PERFIS = REGRAS['profiles']
 CATEGORIAS = {**PERFIS, 'misto': 'Perfil misto', 'sem_classificacao': 'Sem classificação'}
 VERSAO = REGRAS['version']
+VERSAO_ANTERIOR = bytes.fromhex('70657266696c5f736573695f7631').decode('ascii')
 
 
 def concluir(pontos, fortes):

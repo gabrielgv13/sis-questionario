@@ -10,6 +10,7 @@ from psycopg.types.json import Jsonb
 
 from .config import carregar_configuracao
 from .perfis import CATEGORIAS, VERSAO, classificar
+from .questionario_json import validar
 
 
 def conectar():
@@ -25,33 +26,36 @@ def conectar():
     )
 
 
-def cadastrar_questionario(codigo, titulo, perguntas):
+class QuestionarioExistente(ValueError):
+    pass
+
+
+def cadastrar_questionario(codigo, titulo, perguntas, *, documento=None, estrito=False):
     """Cadastra uma vez por código. Reiniciar não altera perguntas já cadastradas."""
-    if not codigo.strip() or not titulo.strip() or not perguntas:
-        raise ValueError('Informe código, título e perguntas.')
-    for pergunta in perguntas:
-        opcoes = pergunta['opcoes']
-        if not pergunta['pergunta'].strip() or len(opcoes) < 2:
-            raise ValueError('Informe enunciado e pelo menos duas opções.')
-        if any(not opcao.strip() for opcao in opcoes) or len(set(opcoes)) != len(opcoes):
-            raise ValueError('As opções devem ser preenchidas e distintas.')
+    documento = validar(documento if documento is not None else dict(
+        schema_version=1, codigo=codigo, titulo=titulo, ativo=True,
+        algoritmo=VERSAO if codigo == 'perfil' else None, exibir_resultado=codigo == 'perfil',
+        perguntas=[dict(enunciado=p['pergunta'], opcoes=p['opcoes']) for p in perguntas]))
     with conectar() as conn:
         questionario = conn.execute(
-            '''INSERT INTO questionarios (codigo, titulo, algoritmo, exibir_resultado)
-               VALUES (%s, %s, %s, %s)
+            '''INSERT INTO questionarios (codigo, titulo, ativo, algoritmo, exibir_resultado, documento)
+               VALUES (%s, %s, %s, %s, %s, %s)
                ON CONFLICT (codigo) DO NOTHING RETURNING id_questionario''',
-            (codigo, titulo, VERSAO if codigo == 'perfil' else None, codigo == 'perfil'),
+            (documento['codigo'], documento['titulo'], documento['ativo'], documento['algoritmo'],
+             documento['exibir_resultado'], Jsonb(documento)),
         ).fetchone()
         if not questionario:
+            if estrito:
+                raise QuestionarioExistente('Já existe um questionário com esse código. Altere o campo codigo no arquivo para importar uma cópia.')
             return conn.execute(
                 'SELECT id_questionario FROM questionarios WHERE codigo = %s', (codigo,),
             ).fetchone()['id_questionario']
         id_questionario = questionario['id_questionario']
-        for ordem, pergunta in enumerate(perguntas, 1):
+        for ordem, pergunta in enumerate(documento['perguntas'], 1):
             id_pergunta = conn.execute(
                 '''INSERT INTO perguntas (id_questionario, enunciado, ordem)
                    VALUES (%s, %s, %s) RETURNING id_pergunta''',
-                (id_questionario, pergunta['pergunta'], ordem),
+                (id_questionario, pergunta['enunciado'], ordem),
             ).fetchone()['id_pergunta']
             with conn.cursor() as cur:
                 cur.executemany(
@@ -59,6 +63,24 @@ def cadastrar_questionario(codigo, titulo, perguntas):
                     [(id_pergunta, texto, i) for i, texto in enumerate(pergunta['opcoes'], 1)],
                 )
         return id_questionario
+
+
+def importar_questionario(documento):
+    documento = validar(documento)
+    return cadastrar_questionario(documento['codigo'], documento['titulo'], [], documento=documento, estrito=True)
+
+
+def exportar_questionario(id_questionario):
+    with conectar() as conn:
+        row = conn.execute('''SELECT documento, codigo, titulo, ativo, algoritmo, exibir_resultado
+            FROM questionarios WHERE id_questionario = %s''', (id_questionario,)).fetchone()
+        if row is None:
+            return None
+        if row['documento'] is None:
+            raise ValueError('Estrutura JSON ausente. Execute sis-questionario-db para atualizar o banco.')
+        # Metadata may also have been changed by an administrator using SQL.
+        return validar({**row['documento'], **{key: row[key] for key in
+                        ('codigo', 'titulo', 'ativo', 'algoritmo', 'exibir_resultado')}})
 
 
 def inicializar_banco():
@@ -254,8 +276,9 @@ def carregar_resultado(id_envio, id_dispositivo):
 
 def configurar_devolutiva(id_questionario, habilitada):
     with conectar() as conn:
-        row = conn.execute('''UPDATE questionarios SET exibir_resultado = %s
+        row = conn.execute('''UPDATE questionarios SET exibir_resultado = %s,
+            documento = jsonb_set(documento, '{exibir_resultado}', to_jsonb(%s::boolean))
             WHERE id_questionario = %s AND algoritmo IS NOT NULL RETURNING id_questionario''',
-            (habilitada, id_questionario)).fetchone()
+            (habilitada, habilitada, id_questionario)).fetchone()
         if not row:
             raise ValueError('Questionário sem algoritmo de classificação.')

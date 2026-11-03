@@ -30,6 +30,7 @@ class QuestionariosTest(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
         self.criar_tabelas()
+        db.inicializar_banco()
         self.app = create_app()
         self.app.testing = True
         self.client = self.app.test_client()
@@ -287,7 +288,7 @@ class QuestionariosTest(unittest.TestCase):
             envio = sessao['envio_id']
         stored = self.conn.execute('SELECT resultado FROM envios WHERE id_envio = %s', (envio,)).fetchone()['resultado']
         self.assertEqual(stored['category'], 'esportes')
-        self.assertEqual(stored['version'], 'perfil_sesi_v1')
+        self.assertEqual(stored['version'], 'perfil_v1')
         self.assertIn(b'140 pontos', self.client.get('/concluido').data)
         self.assertIsNone(db.carregar_resultado(envio, uuid.uuid4()))
         other = self.app.test_client()
@@ -325,8 +326,63 @@ class QuestionariosTest(unittest.TestCase):
         self.criar_tabelas()
         quiz = db.carregar_questionario(self.perfil['id_questionario'])
         self.assertTrue(quiz['exibir_resultado'])
-        self.assertEqual(quiz['algoritmo'], 'perfil_sesi_v1')
+        self.assertEqual(quiz['algoritmo'], 'perfil_v1')
         self.assertIsNone(self.conn.execute('SELECT resultado FROM envios').fetchone()['resultado'])
+
+    def test_import_export_json_armazenado_e_duplicidade(self):
+        doc = dict(schema_version=1, codigo='importado', titulo='Importado', ativo=False,
+                   algoritmo=None, exibir_resultado=False,
+                   perguntas=[dict(enunciado='Pergunta?', opcoes=['B', 'A'])])
+        identifier = db.importar_questionario(doc)
+        stored = self.conn.execute('SELECT documento FROM questionarios WHERE id_questionario = %s', (identifier,)).fetchone()['documento']
+        self.assertEqual(stored, doc)
+        self.assertEqual(db.exportar_questionario(identifier), doc)
+        before = [self.quantidade(table) for table in ('questionarios','perguntas','opcoes')]
+        with self.assertRaises(db.QuestionarioExistente):
+            db.importar_questionario(doc)
+        self.assertEqual([self.quantidade(table) for table in ('questionarios','perguntas','opcoes')], before)
+        self.assertNotIn(identifier, [q['id_questionario'] for q in db.listar_questionarios()])
+        doc['codigo'] = 'copia'
+        second = db.importar_questionario(doc)
+        self.assertEqual(db.exportar_questionario(second), doc)
+
+    def test_exporta_perfil_com_configuracao_atual_e_migra_documentos(self):
+        identifier = self.perfil['id_questionario']
+        original = db.exportar_questionario(identifier)
+        self.assertEqual(len(original['perguntas']), 11)
+        self.assertEqual(original['algoritmo'], 'perfil_v1')
+        db.configurar_devolutiva(identifier, False)
+        self.assertFalse(db.exportar_questionario(identifier)['exibir_resultado'])
+        self.assertFalse(self.conn.execute('SELECT documento FROM questionarios WHERE id_questionario = %s', (identifier,)).fetchone()['documento']['exibir_resultado'])
+        self.conn.execute('ALTER TABLE questionarios DROP COLUMN documento')
+        self.criar_tabelas()
+        migrated = db.exportar_questionario(identifier)
+        self.assertEqual(migrated['perguntas'], original['perguntas'])
+        self.assertFalse(migrated['exibir_resultado'])
+
+    def test_importa_copia_do_perfil_e_classifica_sem_depender_dos_ids(self):
+        documento = db.exportar_questionario(self.perfil['id_questionario'])
+        documento['codigo'] = 'perfil-copia'
+        identifier = db.importar_questionario(documento)
+        self.assertNotEqual(identifier, self.perfil['id_questionario'])
+        aluno = db.registrar_aluno('Teste', 'copia@example.com')
+        envio = db.registrar_envio(aluno, identifier, self.respostas(identifier), uuid.uuid4())
+        resultado = self.conn.execute('SELECT resultado FROM envios WHERE id_envio = %s', (envio,)).fetchone()['resultado']
+        self.assertEqual(resultado['scores']['esportes'], 140)
+        self.assertEqual(resultado['version'], 'perfil_v1')
+
+    def test_importacao_reverte_tudo_se_insercao_falha(self):
+        doc = dict(schema_version=1, codigo='falha', titulo='Falha', ativo=True,
+                   algoritmo=None, exibir_resultado=False,
+                   perguntas=[dict(enunciado='Pergunta?', opcoes=['A','B'])])
+        before = self.quantidade('questionarios')
+        self.conn.execute('''CREATE FUNCTION recusar_opcao() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN RAISE EXCEPTION 'Falha simulada'; END $$''')
+        self.conn.execute('CREATE TRIGGER recusar_opcao BEFORE INSERT ON opcoes FOR EACH ROW EXECUTE FUNCTION recusar_opcao()')
+        with self.assertRaises(psycopg.Error):
+            db.importar_questionario(doc)
+        self.assertEqual(self.quantidade('questionarios'), before)
+        self.assertEqual(self.conn.execute("SELECT COUNT(*) AS n FROM questionarios WHERE codigo = 'falha'").fetchone()['n'], 0)
 
     def test_atualizacao_preserva_envios_sem_identificador(self):
         self.conn.execute('ALTER TABLE envios DROP COLUMN id_dispositivo')

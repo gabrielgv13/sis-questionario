@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Gerenciar questionários{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<div class="admin-area" id="questionnaire-manager" data-import="{{ url_for('admin.import_questionnaire') }}" data-token="{{ token }}">
+  {% include 'admin_navigation.html' %}
+  <header class="admin-heading"><div><p class="admin-eyebrow">BIBLIOTECA</p><h1>Gerenciar questionários</h1><p>Visualize os questionários cadastrados e suas configurações.</p></div><button type="button" class="admin-button admin-button-primary" data-management-action="import">Importar questionário</button></header>
+  <p class="admin-prototype-note">Importe e exporte a estrutura em JSON v1, sem dados dos participantes. A exclusão continua disponível apenas como prévia.</p>
+  <div class="admin-toolbar admin-card">
+    <label class="admin-search" for="questionnaire-search">Buscar questionário<input id="questionnaire-search" type="search" placeholder="Título ou código" autocomplete="off"></label>
+    <label for="questionnaire-status">Status <select id="questionnaire-status"><option value="all">Todos</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select></label>
+  </div>
+  <p id="questionnaire-count" class="admin-list-count" role="status" aria-live="polite">{{ questionarios|length }} questionário(s)</p>
+  <div class="questionnaire-list">
+    {% for q in questionarios %}
+    <article class="admin-card questionnaire-card" data-title="{{ q.titulo }}" data-code="{{ q.codigo }}" data-export="{{ url_for('admin.export_questionnaire', identifier=q.id_questionario) }}" data-status="{{ 'active' if q.ativo else 'inactive' }}">
+      <div class="questionnaire-description"><div class="questionnaire-title"><h2>{{ q.titulo }}</h2><span class="admin-badge {{ 'admin-badge-active' if q.ativo else '' }}">{{ 'Ativo' if q.ativo else 'Inativo' }}</span></div>
+        <p>Código: <strong>{{ q.codigo }}</strong></p><p>{{ 'Classificação de perfis configurada' if q.algoritmo else 'Sem classificação automática' }} · {{ 'Devolutiva habilitada' if q.exibir_resultado else 'Sem devolutiva ao participante' }}</p>
+      </div>
+      <div class="questionnaire-actions"><button type="button" class="admin-button" data-management-action="export">Exportar JSON</button><button type="button" class="admin-button admin-button-danger" data-management-action="delete">Excluir</button></div>
+    </article>
+    {% endfor %}
+  </div>
+  <p id="questionnaire-empty" class="admin-card" {% if questionarios %}hidden{% endif %}>Nenhum questionário encontrado.</p>
+  <dialog id="management-dialog" class="management-dialog" aria-labelledby="management-dialog-title">
+    <form method="dialog"><div class="admin-heading"><h2 id="management-dialog-title"></h2><button type="submit" class="admin-button" aria-label="Fechar">×</button></div>
+      <p id="management-dialog-description"></p>
+      <div id="management-import-fields" hidden><label for="questionnaire-file">Arquivo do questionário (.json, até 1 MiB)</label><input id="questionnaire-file" type="file" accept=".json,application/json"></div>
+      <p id="management-file-status" role="status" aria-live="polite"></p>
+      <div class="management-dialog-actions"><button class="admin-button" type="submit">Voltar</button><button id="management-confirm" class="admin-button" type="button" disabled></button></div>
+    </form>
+  </dialog>
+</div>
+<script src="{{ url_for('static', filename='js/admin_questionarios.js') }}" defer></script>
+{% endblock %}

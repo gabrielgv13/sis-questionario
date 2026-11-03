@@ -8,7 +8,7 @@ from . import bd_exec as db
 from .config import carregar_configuracao
 
 
-def create_app(inicializar=True):
+def create_app(inicializar=False):
     carregar_configuracao()
     app = Flask(__name__)
     app.config.update(

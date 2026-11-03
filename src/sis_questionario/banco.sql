@@ -59,9 +59,30 @@ BEGIN
                    WHERE table_schema = current_schema() AND table_name = 'questionarios'
                      AND column_name = 'exibir_resultado') THEN
         ALTER TABLE questionarios ADD COLUMN exibir_resultado BOOLEAN NOT NULL DEFAULT FALSE;
-        UPDATE questionarios SET algoritmo = 'perfil_sesi_v1', exibir_resultado = TRUE
+        UPDATE questionarios SET algoritmo = 'perfil_v1', exibir_resultado = TRUE
         WHERE codigo = 'perfil';
     END IF;
 END $$;
 ALTER TABLE envios ADD COLUMN IF NOT EXISTS resultado JSONB;
+ALTER TABLE questionarios ADD COLUMN IF NOT EXISTS documento JSONB;
+-- Normaliza o identificador histórico sem recalcular os resultados salvos.
+DO $$
+DECLARE
+    anterior TEXT := convert_from(decode('70657266696c5f736573695f7631', 'hex'), 'UTF8');
+BEGIN
+    UPDATE questionarios SET algoritmo = 'perfil_v1' WHERE algoritmo = anterior;
+    UPDATE questionarios SET documento = jsonb_set(documento, '{algoritmo}', '"perfil_v1"'::jsonb)
+    WHERE documento->>'algoritmo' = anterior;
+    UPDATE envios SET resultado = jsonb_set(resultado, '{version}', '"perfil_v1"'::jsonb)
+    WHERE resultado->>'version' = anterior;
+END $$;
+-- Guarda a estrutura dos questionários existentes sem recriar perguntas ou respostas.
+UPDATE questionarios q SET documento = jsonb_build_object(
+    'schema_version', 1, 'codigo', q.codigo, 'titulo', q.titulo, 'ativo', q.ativo,
+    'algoritmo', q.algoritmo, 'exibir_resultado', q.exibir_resultado,
+    'perguntas', COALESCE((SELECT jsonb_agg(jsonb_build_object(
+        'enunciado', p.enunciado, 'opcoes', COALESCE((SELECT jsonb_agg(o.texto ORDER BY o.ordem)
+        FROM opcoes o WHERE o.id_pergunta = p.id_pergunta), '[]'::jsonb)) ORDER BY p.ordem)
+        FROM perguntas p WHERE p.id_questionario = q.id_questionario), '[]'::jsonb))
+WHERE q.documento IS NULL;
 -- FIM_TABELAS

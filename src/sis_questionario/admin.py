@@ -1,5 +1,6 @@
 """Authenticated, aggregate-only reporting interface."""
 import os
+import json
 import secrets
 from functools import wraps
 
@@ -63,7 +64,53 @@ def logout():
 @admin.get('/')
 @protected
 def dashboard():
+    return render_template('admin_home.html', token=csrf_token())
+
+
+@admin.get('/analise')
+@protected
+def analysis():
     return render_template('admin.html', questionarios=db.listar_questionarios_admin(), token=csrf_token())
+
+
+@admin.get('/questionarios')
+@protected
+def questionnaires():
+    return render_template('admin_questionarios.html', questionarios=db.listar_questionarios_admin(), token=csrf_token())
+
+
+@admin.post('/api/questionnaires/import')
+@protected
+def import_questionnaire():
+    from .questionario_json import MAX_BYTES, ler_arquivo
+    check_csrf(request.headers.get('X-CSRF-Token'))
+    # Bound multipart parsing as well as the uploaded JSON itself.
+    request.max_content_length = MAX_BYTES + 65536
+    upload = request.files.get('file')
+    if upload is None or not upload.filename or not upload.filename.lower().endswith('.json'):
+        return jsonify(error='Selecione um arquivo .json.'), 400
+    try:
+        documento = ler_arquivo(upload.stream.read(MAX_BYTES + 1))
+        identifier = db.importar_questionario(documento)
+    except db.QuestionarioExistente as error:
+        return jsonify(error=str(error)), 409
+    except ValueError as error:
+        return jsonify(error=str(error)), 400
+    return jsonify(id=identifier, title=documento['titulo']), 201
+
+
+@admin.get('/api/questionnaires/<int:identifier>/export')
+@protected
+def export_questionnaire(identifier):
+    try:
+        documento = db.exportar_questionario(identifier)
+    except ValueError as error:
+        return jsonify(error=str(error)), 400
+    if documento is None:
+        abort(404)
+    return Response(json.dumps(documento, ensure_ascii=False, indent=2),
+                    content_type='application/json; charset=utf-8', headers={
+                        'Content-Disposition': f'attachment; filename="questionario-{identifier}.json"'})
 
 
 @admin.post('/api/results')

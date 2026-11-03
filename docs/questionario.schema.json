@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Questionario SIS v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "codigo",
+    "titulo",
+    "ativo",
+    "algoritmo",
+    "exibir_resultado",
+    "perguntas"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "type": "integer"
+    },
+    "codigo": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,79}$"
+    },
+    "titulo": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "pattern": "\\S"
+    },
+    "ativo": {
+      "type": "boolean"
+    },
+    "algoritmo": {
+      "enum": [
+        null,
+        "perfil_v1"
+      ]
+    },
+    "exibir_resultado": {
+      "type": "boolean"
+    },
+    "perguntas": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enunciado",
+          "opcoes"
+        ],
+        "properties": {
+          "enunciado": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "pattern": "\\S"
+          },
+          "opcoes": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "pattern": "\\S"
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "exibir_resultado": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "algoritmo": {
+            "const": "perfil_v1"
+          }
+        }
+      }
+    }
+  ]
+}

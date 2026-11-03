@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Administração{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<div class="admin-area">
+  {% include 'admin_navigation.html' %}
+  <header class="admin-heading"><div><p class="admin-eyebrow">ADMINISTRAÇÃO</p><h1>O que você deseja fazer?</h1><p>Acompanhe as respostas ou organize seus questionários.</p></div></header>
+  <div class="admin-options">
+    <a class="admin-option admin-card" href="{{ url_for('admin.analysis') }}">
+      <span class="admin-option-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 3v17h17M8 16v-5m5 5V6m5 10V9"/></svg></span>
+      <h2>Análise de respostas</h2><p>Explore os gráficos, cruze respostas e perfis e exporte seus resultados.</p><span class="admin-option-action">Abrir análise <span aria-hidden="true">→</span></span>
+    </a>
+    <a class="admin-option admin-card" href="{{ url_for('admin.questionnaires') }}">
+      <span class="admin-option-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v4H9zM9 11h6m-6 4h6"/></svg></span>
+      <h2>Gerenciar questionários</h2><p>Consulte os questionários disponíveis e acesse as opções de importação, exportação e exclusão.</p><span class="admin-option-action">Abrir gerenciamento <span aria-hidden="true">→</span></span>
+    </a>
+  </div>
+</div>
+{% endblock %}

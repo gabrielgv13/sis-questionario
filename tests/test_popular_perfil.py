@@ -31,6 +31,9 @@ class PopularPerfilTest(unittest.TestCase):
 
     def test_snapshots_match_classifier_and_rerun_preserves_configuration(self):
         self.conn.execute(self.script)
+        from sis_questionario.questionario_json import validar
+        documento = self.conn.execute('SELECT documento FROM questionarios').fetchone()['documento']
+        self.assertEqual(len(validar(documento)['perguntas']), 11)
         rows = self.conn.execute('''SELECT e.id_envio, e.resultado,
             jsonb_object_agg(p.enunciado, o.texto) AS respostas FROM envios e
             JOIN respostas r USING (id_envio) JOIN perguntas p USING (id_pergunta)
