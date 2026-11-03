@@ -6,62 +6,140 @@ perguntas em um único formulário. Cada navegador pode enviar uma vez por quest
 
 ## Configurar e executar
 
-Requisitos: Python 3.14+, [uv](https://docs.astral.sh/uv/), PostgreSQL e seu cliente `psql`.
-Node.js é necessário somente para recompilar o CSS, que já está incluído no projeto.
+Requisitos: Python 3.14+, [uv](https://docs.astral.sh/uv/) e PostgreSQL em execução.
+O cliente `psql` e `PSQL_PATH` não são necessários: Psycopg conecta diretamente ao servidor.
+Node.js só é necessário para recompilar o CSS.
 
-1. Instale as dependências e crie sua configuração local:
+Após clonar, com o PostgreSQL local configurado com usuário e senha `postgres`:
 
-   ```powershell
-   uv sync
-   Copy-Item .env.example .env
-   ```
-
-2. Preencha `DB_PASSWORD` com a senha do usuário `client-app` e `SECRET_KEY` com
-   uma chave aleatória. O `.env` é ignorado pelo Git. No ambiente local já configurado,
-   preserve esse arquivo em vez de substituí-lo pelo exemplo.
-   Gere uma chave com `uv run python -c "import secrets; print(secrets.token_hex(32))"`.
-
-3. Prepare o banco usando um administrador:
-
-   ```powershell
-   uv run sis-questionario-db
-   ```
-
-   O comando pede a senha do administrador PostgreSQL e executa somente
-   [`src/sis_questionario/banco.sql`](src/sis_questionario/banco.sql). Se o `psql`
-   não estiver no PATH, informe `PSQL_PATH` no `.env`, por exemplo:
-   `PSQL_PATH=C:/Program Files/PostgreSQL/18/bin/psql.exe`.
-
-4. Inicie o aplicativo:
-
-   ```powershell
-   uv run sis-questionario
-   ```
+```powershell
+uv sync
+uv run sis-questionario-db
+uv run sis-questionario
+```
 
 Abra http://127.0.0.1:5000. Pressione `Ctrl+C` para encerrar.
 
-## SQL único e permissões
+O `.env` é opcional. Os padrões locais são `DB_HOST=localhost`, `DB_PORT=5432`,
+`DB_NAME=mydatabase`, `DB_USER=postgres` e `DB_PASSWORD=postgres`.
+Para personalizar, copie `.env.example` para `.env` e altere os valores.
+Variáveis do ambiente têm prioridade. Preserve um `.env` existente.
+Para usar um administrador separado no setup, defina `DB_ADMIN_USER` e
+`DB_ADMIN_PASSWORD`; por padrão ele usa as credenciais de conexão do app.
+O comando usa a senha configurada, sem prompt, e não altera a senha do servidor.
 
-`banco.sql` reúne a criação do banco, do usuário `client-app`, das seis tabelas,
-do índice contra envios duplicados e dos seguintes privilégios:
+Essas credenciais padrão são para desenvolvimento local. Na hospedagem, configure
+credenciais próprias e uma `SECRET_KEY` estável e aleatória:
+`uv run python -c "import secrets; print(secrets.token_hex(32))"`.
 
-- `CONNECT` no banco configurado em `DB_NAME` (padrão: `mydatabase`).
-- `USAGE` no schema `public` e nas sequências.
-- `SELECT` e `INSERT` em `alunos`, `envios`, `opcoes`, `perguntas`, `questionarios` e `respostas`.
+## Preparação do banco
 
-O SQL utiliza variáveis do **psql**, inclusive para receber `DB_PASSWORD` do
-ambiente sem gravar a senha no arquivo versionado. Execute pelo comando acima
-ou pelo `psql`, não pelo editor SQL do pgAdmin sem adaptação.
+O setup cria o banco se necessário e aplica `src/sis_questionario/banco.sql`
+em uma transação. Reexecutar preserva os registros e reaplica a estrutura.
+O SQL é SQL PostgreSQL comum, sem comandos específicos do `psql`.
+O usuário do setup precisa poder criar o banco e suas tabelas.
+O setup não cria usuários; `DB_USER` deve existir no servidor.
 
-Reexecutar o script preserva os registros, atualiza a senha de `client-app` e
-reaplica as concessões. Ele atende ao modelo atual; os scripts da arquitetura
-antiga foram removidos. Não remove privilégios adicionais eventualmente concedidos
-por um administrador a um usuário já existente.
+O aplicativo cadastra as perguntas do JSON na primeira execução usando `SELECT`
+e `INSERT`. Para uma conta restrita na hospedagem, conceda `CONNECT` no banco,
+`USAGE` no schema `public` e nas sequências, e `SELECT` e `INSERT` nas seis tabelas.
 
-O aplicativo não cria tabelas nem precisa de privilégios de administrador.
-Na primeira execução, cadastra as perguntas do JSON usando `SELECT` e `INSERT`.
-O cadastro de um e-mail existente retorna o aluno já registrado e preserva o nome
-original, para funcionar sem `UPDATE`.
+## Painel administrativo
+
+Para experimentar os gráficos com dados fictícios, execute
+[`docs/popular_perfil.sql`](docs/popular_perfil.sql) no banco da aplicação pelo
+editor SQL do pgAdmin. Prepare as tabelas antes com `uv run sis-questionario-db`.
+O script usa INSERTs para cadastrar o questionário de perfil, suas perguntas e
+alternativas, 120 participantes fictícios e 1.320 respostas. Pode ser reexecutado
+sem duplicar os envios de exemplo e não altera respostas existentes. Os envios
+fictícios incluem resultados de `perfil_sesi_v1`, permitindo testar o gráfico
+de perfis e seus filtros. Reexecutar preenche resultados ausentes de exemplos
+antigos apenas quando suas respostas correspondem às do script, preservando
+resultados já salvos e a configuração de devolutiva do admin. Os dados
+de exemplo passam a fazer parte das estatísticas do painel.
+
+Acesse http://127.0.0.1:5000/admin para explorar os resultados. O painel exige
+uma senha própria, independente das credenciais do PostgreSQL. Para habilitar:
+
+1. Gere o hash da senha (o comando solicita a senha sem exibi-la):
+
+   ```powershell
+   uv run python -c "from getpass import getpass; from werkzeug.security import generate_password_hash; print(generate_password_hash(getpass('Admin password: ')))"
+   ```
+
+2. Copie o resultado inteiro para `ADMIN_PASSWORD_HASH` no `.env`. Configure também
+   uma `SECRET_KEY` aleatória e estável, conforme as instruções acima.
+3. Reinicie o aplicativo e entre em `/admin`. Sem o hash, o acesso fica desabilitado.
+
+Selecione um questionário, inclusive inativo, para visualizar um gráfico de pizza
+por pergunta, com legendas coloridas clicáveis ao lado. O título é o enunciado; cada alternativa mostra sua contagem e o
+percentual das respostas representadas naquele gráfico, incluindo contagens zero.
+Os gráficos usam recursos locais do navegador, sem CDN ou biblioteca externa.
+
+Clique em uma legenda para filtrar as respostas dos mesmos envios em todos os
+gráficos. Várias alternativas na mesma pergunta significam **ou**; perguntas
+diferentes significam **e**. Todos os gráficos consideram todos os filtros,
+inclusive os da própria pergunta. Ao selecionar uma única alternativa, ela
+representa 100% da pizza da pergunta se houver envios correspondentes. Com várias
+alternativas selecionadas, elas dividem a pizza conforme suas contagens. Sem
+envios correspondentes, a pizza mostra “Sem respostas”, sem percentuais artificiais.
+As opções com zero respostas permanecem na legenda para permitir novos filtros.
+As legendas exibem até oito opções por vez, com rolagem suave para acessar as
+demais. Inicialmente, aparecem da maior para a menor porcentagem. O botão acima
+da legenda inverte entre ordem crescente e decrescente, independentemente por
+gráfico. A ordem escolhida é mantida ao filtrar ou atualizar durante a sessão
+do painel, sem alterar as cores das opções. Empates mantêm a ordem original.
+Textos longos aparecem completos ao passar o mouse sobre a opção.
+Cada fatia possui uma linha apontando para seu percentual fora da pizza;
+opções sem respostas continuam na legenda, sem criar fatias artificiais.
+
+Clique novamente para desmarcar, remova uma etiqueta de filtro ou use **Limpar
+filtros**. **Atualizar** busca novos envios preservando os filtros. As alternativas
+também são botões acessíveis pelo teclado. O painel só retorna dados agregados,
+sem nomes ou e-mails. Use **Sair** para encerrar o acesso administrativo.
+
+## Devolutiva e classificação de perfis
+
+Depois de atualizar o código, execute `uv run sis-questionario-db` antes de
+reiniciar o aplicativo. A migração adiciona a configuração nos questionários e
+um resultado JSON por envio, sem remover dados. O Questionário de Perfil recebe
+o algoritmo `perfil_sesi_v1` e a devolutiva habilitada na primeira migração.
+Reexecutar o setup preserva a escolha posterior do administrador.
+
+No admin, selecione o questionário e marque ou desmarque **Exibir o perfil ao
+participante após responder**. O cálculo e o armazenamento continuam ativos
+quando a exibição está desabilitada. Questionários sem algoritmo mantêm apenas
+a confirmação de envio. Outros classificadores exigem implementação própria;
+não basta associar o algoritmo de Perfil a perguntas diferentes.
+
+O resultado é salvo com as respostas na mesma transação, incluindo a versão,
+as pontuações dos cinco perfis, a quantidade de associações +20 e os vencedores.
+Vence a maior pontuação; em empate, vence quem tiver mais associações +20;
+persistindo o empate, o resultado é **Perfil misto**. Valores negativos são
+preservados. A conclusão mostra os pontos e permite atualizar a página na mesma
+sessão, verificando também o identificador do navegador. Não há consulta pública
+por número do envio.
+
+O painel inclui o gráfico **Perfis dos participantes**, mesmo com a devolutiva
+desativada. Suas legendas filtram as respostas das perguntas, e os filtros das
+perguntas também atualizam os perfis. Perfis selecionados combinam por **ou**;
+o conjunto combina por **e** com as perguntas. Cada envio misto conta uma vez
+em **Perfil misto**. Envios sem resultado salvo aparecem em **Sem classificação**;
+o aplicativo não os recalcula automaticamente. O script de exemplos agora inclui
+a classificação e pode preencher resultados ausentes dos seus próprios envios.
+
+Os pesos estão em `src/sis_questionario/perfil_sesi_v1.json`, associados aos
+textos das perguntas e alternativas, sem depender dos IDs do banco. A referência
+original está em [perfil-sesi-regras-originais.md](docs/perfil-sesi-regras-originais.md).
+Interpretações adotadas: Educação dá +10 a Tecnológicos, +20 aos demais exceto
+Otakus; comida dá +5 a todos, e Prato popular soma mais +10 a Tecnológicos.
+Adições e subtrações são cumulativas, inclusive nas duas opções de jogos.
+A pergunta 5 continua permitindo uma única resposta. Mudanças futuras nos pesos
+devem criar uma nova versão para preservar o significado dos resultados salvos.
+
+Com uma conta PostgreSQL restrita, o controle do admin precisa também de
+`UPDATE (exibir_resultado)` em `questionarios`; o fluxo de participação continua
+funcionando apenas com `SELECT` e `INSERT`, além das permissões de sequências.
 
 ## Estrutura do projeto
 
@@ -117,7 +195,7 @@ Envios anteriores ao recurso permanecem com identificador vazio.
 
 O arquivo [`análise-dos-fatos.pbix`](análise-dos-fatos.pbix) faz parte do repositório.
 No Power BI, configure a fonte PostgreSQL com os valores de `DB_HOST`, `DB_PORT`,
-`DB_NAME` e o usuário `client-app`. Informe a senha da sua configuração local.
+`DB_NAME` e o usuário configurado em `DB_USER`. Informe a senha da sua configuração local.
 Consulte [o guia de relacionamentos e medidas](docs/power-bi.md) e
 [as consultas SQL de exemplo](docs/consultas.md).
 
@@ -136,7 +214,7 @@ Durante a edição, use `npm run watch:css`. O fluxo usa o
 ## Testes
 
 Os testes usam um administrador em uma conexão separada para criar schemas e
-roles temporárias, revertidos ao final. A aplicação continua usando `client-app`.
+roles temporárias, revertidos ao final. Os testes verificam também uma conta restrita.
 
 ```powershell
 $env:TEST_DATABASE_URL = 'postgresql://administrador:SENHA@localhost:5432/mydatabase'

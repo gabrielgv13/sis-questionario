@@ -1,32 +1,5 @@
--- SQL único de instalação. Execute com psql usando um administrador PostgreSQL.
--- A senha é lida de DB_PASSWORD; não coloque credenciais no repositório.
-\set ON_ERROR_STOP on
-\getenv banco DB_NAME
-\if :{?banco}
-\else
-    \set banco mydatabase
-\endif
-\getenv senha_app DB_PASSWORD
-\if :{?senha_app}
-\else
-    \echo 'Defina DB_PASSWORD antes de executar este arquivo.'
-    \quit 1
-\endif
-
--- CREATE DATABASE precisa ser executado fora de uma transação.
-SELECT format('CREATE DATABASE %I', :'banco')
-WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = :'banco')
-\gexec
-\connect :banco
-
-BEGIN;
+-- Estrutura aplicada pelo setup_db usando Psycopg.
 SET search_path TO public;
-
-SELECT 'CREATE USER "client-app"'
-WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'client-app')
-\gexec
-SELECT format('ALTER USER "client-app" WITH PASSWORD %L', :'senha_app')
-\gexec
 
 -- INICIO_TABELAS
 CREATE TABLE IF NOT EXISTS alunos (
@@ -78,17 +51,17 @@ CREATE TABLE IF NOT EXISTS respostas (
     id_opcao INTEGER NOT NULL REFERENCES opcoes(id_opcao),
     UNIQUE (id_envio, id_pergunta)
 );
+-- A configuração da devolutiva é independente do algoritmo usado nos envios.
+ALTER TABLE questionarios ADD COLUMN IF NOT EXISTS algoritmo TEXT;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_schema = current_schema() AND table_name = 'questionarios'
+                     AND column_name = 'exibir_resultado') THEN
+        ALTER TABLE questionarios ADD COLUMN exibir_resultado BOOLEAN NOT NULL DEFAULT FALSE;
+        UPDATE questionarios SET algoritmo = 'perfil_sesi_v1', exibir_resultado = TRUE
+        WHERE codigo = 'perfil';
+    END IF;
+END $$;
+ALTER TABLE envios ADD COLUMN IF NOT EXISTS resultado JSONB;
 -- FIM_TABELAS
-
-GRANT CONNECT ON DATABASE :"banco" TO "client-app";
-GRANT USAGE ON SCHEMA public TO "client-app";
-GRANT SELECT, INSERT ON TABLE
-    alunos,
-    envios,
-    opcoes,
-    perguntas,
-    questionarios,
-    respostas
-TO "client-app";
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO "client-app";
-COMMIT;

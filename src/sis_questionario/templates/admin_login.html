@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Administração{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<section class="admin-login admin-card">
+  <p class="admin-eyebrow">ÁREA RESTRITA</p>
+  <h1>Resultados dos questionários</h1>
+  <p>Entre para explorar as respostas.</p>
+  {% if error %}<p role="alert" class="admin-error">{{ error }}</p>{% endif %}
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ token }}">
+    <label for="password">Senha de administrador</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required>
+    <button type="submit" class="admin-primary">Entrar</button>
+  </form>
+</section>
+{% endblock %}

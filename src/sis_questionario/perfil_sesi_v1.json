@@ -1,0 +1,1987 @@
+{
+  "version": "perfil_sesi_v1",
+  "profiles": {
+    "politico": "Contraculturais / Políticos",
+    "identitario": "Identitários / Melancólicos",
+    "tecnologico": "Tecnológicos / Digitais",
+    "esportes": "Estilos de Vida e Esportes",
+    "otaku": "Otakus"
+  },
+  "questions": [
+    {
+      "title": "Qual das matérias escolares abaixo você mais gosta de estudar e/ou tem mais interesse em aprender?",
+      "options": {
+        "Biologia": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 20,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": -5
+          }
+        },
+        "Sociologia": {
+          "add": {
+            "politico": 20,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Filosofia": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Geografia": {
+          "add": {
+            "politico": 20,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": -5
+          }
+        },
+        "Física": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 10,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": -5,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Química": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 20,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": -5,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Matemática": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 20,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Inglês": {
+          "add": {
+            "politico": 0,
+            "identitario": 20,
+            "tecnologico": 20,
+            "esportes": 0,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Artes": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 10,
+            "esportes": 0,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Português": {
+          "add": {
+            "politico": 20,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": -5,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Educação Física": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 20,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": -5,
+            "esportes": 0,
+            "otaku": 0
+          }
+        }
+      }
+    },
+    {
+      "title": "Pensando no último livro que você leu, qual dos gêneros abaixo melhor descreve a história?",
+      "options": {
+        "Ação": {
+          "add": {
+            "politico": 20,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 20,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": -5,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Aventura": {
+          "add": {
+            "politico": 20,
+            "identitario": 20,
+            "tecnologico": 10,
+            "esportes": 20,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Terror": {
+          "add": {
+            "politico": 0,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Romance": {
+          "add": {
+            "politico": 20,
+            "identitario": 10,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": -5,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Ficção Científica": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 20,
+            "esportes": 0,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Thriller": {
+          "add": {
+            "politico": 0,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Suspense": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Comédia": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        }
+      }
+    },
+    {
+      "title": "Quando você escolhe um filme para assistir no seu tempo livre, qual dos gêneros abaixo costuma preferir?",
+      "options": {
+        "Ação": {
+          "add": {
+            "politico": 20,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 20,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": -5,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Aventura": {
+          "add": {
+            "politico": 20,
+            "identitario": 20,
+            "tecnologico": 10,
+            "esportes": 20,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Terror": {
+          "add": {
+            "politico": 0,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Romance": {
+          "add": {
+            "politico": 20,
+            "identitario": 10,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": -5,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Ficção Científica": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 20,
+            "esportes": 0,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Thriller": {
+          "add": {
+            "politico": 0,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Suspense": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Comédia": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        }
+      }
+    },
+    {
+      "title": "Qual dos estilos musicais abaixo você mais gosta de ouvir no dia a dia?",
+      "options": {
+        "Samba": {
+          "add": {
+            "politico": 20,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": -5,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Bossa Nova": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Gospel": {
+          "add": {
+            "politico": 10,
+            "identitario": 20,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Sertanejo": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 20,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Eletrônica": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 20,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Rock": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Punk": {
+          "add": {
+            "politico": 0,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Metal": {
+          "add": {
+            "politico": 0,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Funk": {
+          "add": {
+            "politico": 20,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": -5,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Disco": {
+          "add": {
+            "politico": 0,
+            "identitario": 20,
+            "tecnologico": 20,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Kpop": {
+          "add": {
+            "politico": 0,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        }
+      }
+    },
+    {
+      "title": "Entre as opções abaixo, que tipo de conteúdo você costuma buscar com mais frequência ao pesquisar na internet?",
+      "options": {
+        "Tutoriais de estudo": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 20,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Curiosidades": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Notícias e atualidades": {
+          "add": {
+            "politico": 20,
+            "identitario": 10,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Ciência e tecnologia": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 20,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Programação e informática": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 20,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Jogos e dicas para jogar": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 20,
+            "esportes": 0,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Filmes, séries e animações": {
+          "add": {
+            "politico": 20,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 10,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Música e artistas": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Esportes e atividades físicas": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 20,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Saúde e bem-estar": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 20,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Receitas e culinária": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 0,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": -5,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Moda e beleza": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 20,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": -5,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Arte, desenho e fotografia": {
+          "add": {
+            "politico": 20,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Livros e literatura": {
+          "add": {
+            "politico": 20,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Viagens e lugares para conhecer": {
+          "add": {
+            "politico": 0,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 20,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Animais e cuidados com pets": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Profissões, cursos e mercado de trabalho": {
+          "add": {
+            "politico": 20,
+            "identitario": 20,
+            "tecnologico": 20,
+            "esportes": 20,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Produtos, preços e compras": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Tutoriais de tarefas do dia a dia": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Humor e memes": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Outros assuntos": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        }
+      }
+    },
+    {
+      "title": "Qual das cores ou dos grupos de cores abaixo é o seu favorito, pensando nos seus gostos pessoais?",
+      "options": {
+        "Preto": {
+          "add": {
+            "politico": 0,
+            "identitario": 10,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Branco": {
+          "add": {
+            "politico": 10,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 10,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Azul": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Vermelho": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Verde": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 10,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Amarelo": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Laranja": {
+          "add": {
+            "politico": 0,
+            "identitario": 10,
+            "tecnologico": 0,
+            "esportes": 10,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Rosa": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Roxo": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 10,
+            "esportes": 0,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Marrom": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 10,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Cinza": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 10,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Cores Pasteis": {
+          "add": {
+            "politico": 0,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        }
+      }
+    },
+    {
+      "title": "Em situações sociais, você se identifica mais como extrovertido, buscando conversar e interagir com outras pessoas, ou introvertido, preferindo momentos mais reservados e interações em grupos menores?",
+      "options": {
+        "Extrovertido": {
+          "add": {
+            "politico": 20,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 20,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": -5
+          }
+        },
+        "Introvertido": {
+          "add": {
+            "politico": 0,
+            "identitario": 20,
+            "tecnologico": 20,
+            "esportes": 0,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        }
+      }
+    },
+    {
+      "title": "Pensando na profissão que você sonha em exercer no futuro, em qual das áreas abaixo você mais gostaria de trabalhar?",
+      "options": {
+        "Saúde": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 20,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": -5,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Veterinário": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 20,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": -5,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Educação": {
+          "add": {
+            "politico": 20,
+            "identitario": 20,
+            "tecnologico": 10,
+            "esportes": 20,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Metalúrgica": {
+          "add": {
+            "politico": 10,
+            "identitario": 0,
+            "tecnologico": 20,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Elétrica": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 20,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Automação": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 20,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Redes de Computadores": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 20,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Desenvolvimento de Software": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 20,
+            "esportes": 0,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Administração": {
+          "add": {
+            "politico": 20,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 20,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": -5,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Contabilidade": {
+          "add": {
+            "politico": 20,
+            "identitario": 20,
+            "tecnologico": 10,
+            "esportes": 20,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": -5
+          }
+        },
+        "Pesquisa Científica": {
+          "add": {
+            "politico": 20,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 20,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": -5
+          }
+        },
+        "Segurança Pública": {
+          "add": {
+            "politico": 20,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 20,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": -5,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Serviços de Emergência (Bombeiros, Para-Médicos…)": {
+          "add": {
+            "politico": 20,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 20,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": -5,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Têxtil": {
+          "add": {
+            "politico": 0,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Moda": {
+          "add": {
+            "politico": 0,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Artes Visuais (Pintura, Desenho…)": {
+          "add": {
+            "politico": 20,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Artes Cênicas (De cena: Dança, Teatro…)": {
+          "add": {
+            "politico": 20,
+            "identitario": 20,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "Marketing": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Design": {
+          "add": {
+            "politico": 20,
+            "identitario": 0,
+            "tecnologico": 20,
+            "esportes": 0,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        }
+      }
+    },
+    {
+      "title": "Entre os alimentos, pratos e bebidas abaixo, qual você escolheria como seu favorito, considerando tanto as opções doces quanto as salgadas?",
+      "options": {
+        "Brigadeiro": {
+          "add": {
+            "politico": 5,
+            "identitario": 5,
+            "tecnologico": 5,
+            "esportes": 5,
+            "otaku": 5
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Sorvete": {
+          "add": {
+            "politico": 5,
+            "identitario": 5,
+            "tecnologico": 5,
+            "esportes": 5,
+            "otaku": 5
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Milkshake": {
+          "add": {
+            "politico": 5,
+            "identitario": 5,
+            "tecnologico": 5,
+            "esportes": 5,
+            "otaku": 5
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Pizza Doce": {
+          "add": {
+            "politico": 5,
+            "identitario": 5,
+            "tecnologico": 5,
+            "esportes": 5,
+            "otaku": 5
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Pipoca Doce": {
+          "add": {
+            "politico": 5,
+            "identitario": 5,
+            "tecnologico": 5,
+            "esportes": 5,
+            "otaku": 5
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Churros": {
+          "add": {
+            "politico": 5,
+            "identitario": 5,
+            "tecnologico": 5,
+            "esportes": 5,
+            "otaku": 5
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Frutas": {
+          "add": {
+            "politico": 5,
+            "identitario": 5,
+            "tecnologico": 5,
+            "esportes": 5,
+            "otaku": 5
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Salgadinho de festa": {
+          "add": {
+            "politico": 5,
+            "identitario": 5,
+            "tecnologico": 5,
+            "esportes": 5,
+            "otaku": 5
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Salgadinho": {
+          "add": {
+            "politico": 5,
+            "identitario": 5,
+            "tecnologico": 5,
+            "esportes": 5,
+            "otaku": 5
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Prato popular (Arroz e Feijão)": {
+          "add": {
+            "politico": 5,
+            "identitario": 5,
+            "tecnologico": 15,
+            "esportes": 5,
+            "otaku": 5
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Macarronada": {
+          "add": {
+            "politico": 5,
+            "identitario": 5,
+            "tecnologico": 5,
+            "esportes": 5,
+            "otaku": 5
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Strogonoff": {
+          "add": {
+            "politico": 5,
+            "identitario": 5,
+            "tecnologico": 5,
+            "esportes": 5,
+            "otaku": 5
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Pizza": {
+          "add": {
+            "politico": 5,
+            "identitario": 5,
+            "tecnologico": 5,
+            "esportes": 5,
+            "otaku": 5
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Hambúrguer": {
+          "add": {
+            "politico": 5,
+            "identitario": 5,
+            "tecnologico": 5,
+            "esportes": 5,
+            "otaku": 5
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Sushi": {
+          "add": {
+            "politico": 5,
+            "identitario": 5,
+            "tecnologico": 5,
+            "esportes": 5,
+            "otaku": 5
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Pipoca Salgada": {
+          "add": {
+            "politico": 5,
+            "identitario": 5,
+            "tecnologico": 5,
+            "esportes": 5,
+            "otaku": 5
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Feijoada": {
+          "add": {
+            "politico": 5,
+            "identitario": 5,
+            "tecnologico": 5,
+            "esportes": 5,
+            "otaku": 5
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Pão de Queijo": {
+          "add": {
+            "politico": 5,
+            "identitario": 5,
+            "tecnologico": 5,
+            "esportes": 5,
+            "otaku": 5
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        }
+      }
+    },
+    {
+      "title": "Qual dos animais abaixo você mais gostaria de ter como animal de estimação, independentemente de já ter um em casa?",
+      "options": {
+        "Cachorro": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 20,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Gato": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 20,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Pássaro": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 10,
+            "esportes": 0,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Roedor": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 20,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Réptil": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Peixe": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "De Fazenda (Porco, Cabra, Bezerro)": {
+          "add": {
+            "politico": 20,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 20,
+            "otaku": 0
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        },
+        "Lebre / Coelho": {
+          "add": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 20
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": 0
+          }
+        }
+      }
+    },
+    {
+      "title": "Se você pudesse escolher um destes jogos para se divertir no seu tempo livre, qual preferiria jogar: The King Of Fighters, de luta, ou FIFA 20, de futebol?",
+      "options": {
+        "The King Of Fighters": {
+          "add": {
+            "politico": 10,
+            "identitario": 20,
+            "tecnologico": 10,
+            "esportes": 10,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": -5,
+            "otaku": 0
+          }
+        },
+        "FIFA 20": {
+          "add": {
+            "politico": 10,
+            "identitario": 10,
+            "tecnologico": 10,
+            "esportes": 20,
+            "otaku": 10
+          },
+          "subtract": {
+            "politico": 0,
+            "identitario": 0,
+            "tecnologico": 0,
+            "esportes": 0,
+            "otaku": -5
+          }
+        }
+      }
+    }
+  ]
+}

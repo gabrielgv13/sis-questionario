@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Painel de respostas{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<div id="admin-dashboard" data-endpoint="{{ url_for('admin.results') }}" data-settings="{{ url_for('admin.settings') }}" data-token="{{ token }}">
+  <div class="admin-heading">
+    <div><p class="admin-eyebrow">ANÁLISE DE RESPOSTAS</p><h1>Painel de questionários</h1></div>
+    <form method="post" action="{{ url_for('admin.logout') }}"><input type="hidden" name="csrf_token" value="{{ token }}"><button type="submit">Sair</button></form>
+  </div>
+  <div class="admin-toolbar admin-card">
+    <label for="quiz">Questionário</label>
+    <select id="quiz">
+      {% for q in questionarios %}<option value="{{ q.id_questionario }}">{{ q.titulo }}{% if not q.ativo %} (inativo){% endif %}</option>{% endfor %}
+    </select>
+    <button id="clear-filters" type="button">Limpar filtros</button>
+    <button id="refresh-results" type="button">Atualizar</button>
+  </div>
+  <label id="result-setting" hidden><input id="show-result" type="checkbox"> Exibir o perfil ao participante após responder (a classificação para o painel continua ativa)</label>
+  <div class="admin-stats">
+    <div class="admin-card"><span>Total de envios</span><strong id="total">—</strong></div>
+    <div class="admin-card"><span>Envios com todos os filtros</span><strong id="matching">—</strong></div>
+  </div>
+  <p>Clique nas legendas coloridas para cruzar respostas. Na mesma pergunta, as opções são combinadas por “ou”; entre perguntas, por “e”. Todos os gráficos consideram todos os filtros, inclusive os da própria pergunta. Clique novamente para desmarcar.</p>
+  <div id="active-filters" aria-label="Filtros ativos"></div>
+  <p id="admin-status" role="status" aria-live="polite"></p>
+  <div id="charts" class="admin-charts" aria-busy="false"></div>
+</div>
+<script src="{{ url_for('static', filename='js/admin.js') }}" defer></script>
+{% endblock %}

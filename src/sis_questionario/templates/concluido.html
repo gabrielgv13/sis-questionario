@@ -3,5 +3,19 @@
 {% block status_icon %}<span class="mx-auto flex size-20 items-center justify-center rounded-full bg-teal-50 text-teal-700" aria-hidden="true"><svg class="size-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m6 12 4 4 8-8"/><circle cx="12" cy="12" r="10"/></svg></span>{% endblock %}
 {% block eyebrow %}Participação concluída{% endblock %}
 {% block heading %}Obrigado por participar!{% endblock %}
-{% block description %}<p>Suas respostas foram salvas com sucesso.</p><p>Cada escolha ajuda a conhecer melhor seu ponto de vista. Sua contribuição faz a diferença.</p>{% endblock %}
+{% block description %}
+<p>Suas respostas foram salvas com sucesso.</p>
+{% if resultado %}
+<section aria-label="Seu resultado" style="text-align:left;margin-top:1.5rem">
+    <h2 style="font-size:1.3rem;font-weight:700;color:#115e59">{% if resultado.category == 'misto' %}Seu resultado: Perfil misto{% else %}Seu perfil: {{ perfis[resultado.category] }}{% endif %}</h2>
+    {% if resultado.category == 'misto' %}<p>Você apresentou afinidades equivalentes com: {% for perfil in resultado.winners %}{{ perfis[perfil] }}{% if not loop.last %}; {% endif %}{% endfor %}.</p>{% endif %}
+    <dl style="margin:1rem 0">
+    {% for perfil, nome in perfis.items() %}
+        <div style="display:flex;justify-content:space-between;gap:1rem;border-bottom:1px solid #e2e8f0;padding:.5rem 0"><dt>{{ nome }}</dt><dd style="white-space:nowrap;font-weight:700">{{ resultado.scores[perfil] }} pontos</dd></div>
+    {% endfor %}
+    </dl>
+    <p>Este resultado indica afinidades nas respostas deste quiz.</p>
+</section>
+{% else %}<p>Cada escolha ajuda a conhecer melhor seu ponto de vista. Sua contribuição faz a diferença.</p>{% endif %}
+{% endblock %}
 {% block action %}Ver outros questionários{% endblock %}

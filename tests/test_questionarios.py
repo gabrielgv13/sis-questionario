@@ -278,6 +278,56 @@ class QuestionariosTest(unittest.TestCase):
         self.assertEqual(resultado.status_code, 400)
         self.assertEqual(self.quantidade('alunos'), 0)
 
+    def test_resultado_persistido_devolutiva_e_privacidade(self):
+        self.cadastrar_participante()
+        response = self.client.post('/submit-pesquisa', data=self.formulario(), follow_redirects=True)
+        self.assertIn('Seu perfil:'.encode(), response.data)
+        self.assertIn(b'140 pontos', response.data)
+        with self.client.session_transaction() as sessao:
+            envio = sessao['envio_id']
+        stored = self.conn.execute('SELECT resultado FROM envios WHERE id_envio = %s', (envio,)).fetchone()['resultado']
+        self.assertEqual(stored['category'], 'esportes')
+        self.assertEqual(stored['version'], 'perfil_sesi_v1')
+        self.assertIn(b'140 pontos', self.client.get('/concluido').data)
+        self.assertIsNone(db.carregar_resultado(envio, uuid.uuid4()))
+        other = self.app.test_client()
+        self.assertEqual(other.get('/concluido').status_code, 302)
+        db.configurar_devolutiva(self.perfil['id_questionario'], False)
+        self.assertNotIn(b'Seu perfil:', self.client.get('/concluido').data)
+        self.criar_tabelas()
+        self.assertFalse(db.carregar_questionario(self.perfil['id_questionario'])['exibir_resultado'])
+        self.assertEqual(self.conn.execute('SELECT resultado FROM envios WHERE id_envio = %s', (envio,)).fetchone()['resultado'], stored)
+
+    def test_classifica_com_devolutiva_desativada_e_questionario_sem_algoritmo(self):
+        db.configurar_devolutiva(self.perfil['id_questionario'], False)
+        aluno = db.registrar_aluno('Teste', 'test@example.com')
+        envio = db.registrar_envio(aluno, self.perfil['id_questionario'], self.respostas(), uuid.uuid4())
+        self.assertEqual(self.conn.execute('SELECT resultado FROM envios WHERE id_envio = %s', (envio,)).fetchone()['resultado']['category'], 'esportes')
+        outro = db.cadastrar_questionario('simples', 'Simples', [{'pergunta': 'Teste?', 'opcoes': ['A', 'B']}])
+        envio = db.registrar_envio(aluno, outro, self.respostas(outro), uuid.uuid4())
+        self.assertIsNone(self.conn.execute('SELECT resultado FROM envios WHERE id_envio = %s', (envio,)).fetchone()['resultado'])
+        with self.assertRaises(ValueError):
+            db.configurar_devolutiva(outro, True)
+
+    def test_falha_classificacao_nao_grava_envio(self):
+        aluno = db.registrar_aluno('Teste', 'test@example.com')
+        self.conn.execute('UPDATE perguntas SET enunciado = %s WHERE id_pergunta = %s', ('Alterada', next(iter(self.respostas()))))
+        with self.assertRaises(ValueError):
+            db.registrar_envio(aluno, self.perfil['id_questionario'], self.respostas(), uuid.uuid4())
+        self.assertEqual(self.quantidade('envios'), 0)
+        self.assertEqual(self.quantidade('respostas'), 0)
+
+    def test_migracao_habilita_perfil_e_preserva_envios_antigos(self):
+        self.conn.execute('ALTER TABLE questionarios DROP COLUMN algoritmo, DROP COLUMN exibir_resultado')
+        aluno = db.registrar_aluno('Teste', 'test@example.com')
+        self.conn.execute('INSERT INTO envios (id_aluno,id_questionario) VALUES (%s,%s)', (aluno, self.perfil['id_questionario']))
+        self.conn.execute('ALTER TABLE envios DROP COLUMN resultado')
+        self.criar_tabelas()
+        quiz = db.carregar_questionario(self.perfil['id_questionario'])
+        self.assertTrue(quiz['exibir_resultado'])
+        self.assertEqual(quiz['algoritmo'], 'perfil_sesi_v1')
+        self.assertIsNone(self.conn.execute('SELECT resultado FROM envios').fetchone()['resultado'])
+
     def test_atualizacao_preserva_envios_sem_identificador(self):
         self.conn.execute('ALTER TABLE envios DROP COLUMN id_dispositivo')
         aluno = db.registrar_aluno('Teste', 'teste@example.com')

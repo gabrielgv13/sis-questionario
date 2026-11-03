@@ -1,0 +1,21 @@
+.admin-heading,.admin-toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}.admin-heading{margin-bottom:1.5rem}.admin-eyebrow{font-size:.75rem;letter-spacing:.15em;color:#0f766e;font-weight:700}.admin-heading h1,.admin-login h1{font-size:1.9rem;font-weight:750;color:#0f172a}.admin-card{background:white;border:1px solid #cbd5e1;border-radius:1rem;padding:1.5rem}.admin-toolbar{margin-bottom:1rem}.admin-toolbar select{flex:1;min-width:12rem}.admin-stats,.admin-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin:1rem 0}.admin-stats strong{display:block;font-size:2rem;color:#115e59}.admin-charts h2{font-size:1.1rem;font-weight:700;color:#0f172a;margin-bottom:.5rem;overflow-wrap:anywhere}.admin-charts p{font-size:.8rem;color:#64748b;margin-bottom:1rem}#admin-dashboard button,.admin-login button{border:1px solid #94a3b8;border-radius:.5rem;padding:.55rem .8rem;background:white;cursor:pointer}#admin-dashboard button:hover,.admin-login button:hover{border-color:#0f766e;background:#f0fdfa}#admin-dashboard button:focus-visible,.admin-login :focus-visible{outline:3px solid #0d9488;outline-offset:3px}#admin-dashboard button:disabled{opacity:.5;cursor:wait}.answer-label{display:flex;justify-content:space-between;gap:1rem;overflow-wrap:anywhere}.answer-value{white-space:nowrap;font-variant-numeric:tabular-nums}.admin-error{color:#b91c1c}.admin-login{max-width:28rem;margin:2rem auto}.admin-login label,.admin-login input{display:block;width:100%;margin:.8rem 0}.admin-login input,.admin-toolbar select{border:1px solid #94a3b8;border-radius:.5rem;padding:.65rem}.admin-login .admin-primary{background:#115e59;color:white;width:100%;margin-top:1rem}#active-filters{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}#admin-status{margin:1rem 0}#charts[aria-busy=true]{opacity:.55}@media(max-width:700px){.admin-charts{grid-template-columns:1fr}.admin-card{padding:1rem}.answer-label{flex-wrap:wrap}}
+
+.pie-layout{display:grid;grid-template-columns:minmax(180px,240px) minmax(0,1fr);gap:1rem;align-items:center;margin-top:1rem}
+.answer-pie{width:100%;min-height:180px;display:grid;place-items:center}
+.answer-pie svg{display:block;width:100%;height:auto;overflow:visible}
+.pie-percent{font:600 12px system-ui,sans-serif;fill:#334155}
+.legend-panel{min-width:0}
+#admin-dashboard .legend-order{display:block;margin:0 3px .65rem;font-size:.75rem;font-weight:600;color:#115e59}
+.pie-empty{font-size:.8rem;color:#475569;text-align:center;padding:1rem}
+.pie-legend{--legend-row:56px;--legend-gap:8px;min-width:0;display:flex;flex-direction:column;gap:var(--legend-gap);max-height:calc(8 * var(--legend-row) + 7 * var(--legend-gap));overflow-y:auto;scroll-behavior:smooth;scroll-snap-type:y proximity;scroll-padding:0;scrollbar-gutter:stable;overscroll-behavior-y:contain;padding-inline:3px}
+.pie-legend:focus-visible{outline:2px solid #0d9488;outline-offset:3px}
+#admin-dashboard .legend-option{display:flex;align-items:center;gap:.65rem;width:100%;text-align:left;padding:.4rem .5rem;border:2px solid transparent;background:#f8fafc;height:var(--legend-row);min-height:var(--legend-row);flex-shrink:0;scroll-snap-align:start}
+#admin-dashboard .legend-option:hover{border-color:#94a3b8}
+#admin-dashboard .legend-option[aria-pressed=true]{border-color:#0f766e;background:#f0fdfa;color:#134e4a}
+.legend-swatch{width:.85rem;height:.85rem;flex:none;border-radius:.2rem}
+.legend-option .answer-label{display:block;flex:1;min-width:0;font-size:.8rem;line-height:1.2}
+.legend-option .answer-label>span:first-child{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.legend-option .answer-value{display:block;margin-top:.2rem;color:#64748b;font-size:.75rem}
+@media(max-width:1100px){.admin-charts{grid-template-columns:1fr}.pie-layout{grid-template-columns:minmax(180px,280px) minmax(0,1fr)}}
+@media(max-width:520px){.pie-layout{grid-template-columns:1fr}.answer-pie{max-width:300px;justify-self:center}}
+@media(prefers-reduced-motion:reduce){.pie-legend{scroll-behavior:auto}}

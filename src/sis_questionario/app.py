@@ -19,6 +19,9 @@ def create_app(inicializar=True):
     if inicializar:
         db.inicializar_banco()
 
+    from .admin import admin
+    app.register_blueprint(admin)
+
     @app.errorhandler(400)
     def formulario_invalido(erro):
         return render_template('erro.html', erro=erro, titulo='Confira seu formulário',
@@ -100,7 +103,7 @@ def create_app(inicializar=True):
                     if len(valores) != 1:
                         raise ValueError('Selecione apenas uma opção por pergunta.')
                     respostas[int(campo.removeprefix('pergunta_'))] = int(valores[0])
-            db.registrar_envio(session['aluno_id'], session['questionario_id'], respostas,
+            id_envio = db.registrar_envio(session['aluno_id'], session['questionario_id'], respostas,
                                g.id_dispositivo)
         except db.EnvioDuplicado:
             return render_template('ja_respondido.html'), 409
@@ -109,12 +112,17 @@ def create_app(inicializar=True):
         session.pop('questionario_id', None)
         session.pop('token_formulario', None)
         session['envio_concluido'] = True
+        session['envio_id'] = id_envio
         return redirect(url_for('concluido'))
 
     @app.route('/concluido')
     def concluido():
         if not session.get('envio_concluido'):
             return redirect(url_for('index'))
-        return render_template('concluido.html')
+        from .perfis import PERFIS
+        resultado = db.carregar_resultado(session['envio_id'], g.id_dispositivo) if session.get('envio_id') else None
+        response = app.make_response(render_template('concluido.html', resultado=resultado, perfis=PERFIS))
+        response.headers['Cache-Control'] = 'no-store'
+        return response
 
     return app
