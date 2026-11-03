@@ -68,7 +68,7 @@ def exportar_questionario(id_questionario):
         if row is None:
             return None
         if row['documento'] is None:
-            raise ValueError('Estrutura JSON ausente. Execute sis-questionario-db para atualizar o banco.')
+            raise ValueError('Estrutura JSON ausente. Execute banco.sql pelo pgAdmin para atualizar o banco.')
         # Metadata may also have been changed by an administrator using SQL.
         return validar({**row['documento'], **{key: row[key] for key in
                         ('codigo', 'titulo', 'ativo', 'algoritmo', 'exibir_resultado')}})

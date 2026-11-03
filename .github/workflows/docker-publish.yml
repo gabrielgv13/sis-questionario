@@ -26,7 +26,7 @@ jobs:
       - name: Generate ephemeral test credentials
         shell: bash
         run: |
-          for key in ADMIN_PASSWORD SECRET_KEY POSTGRES_PASSWORD; do
+          for key in ADMIN_PASSWORD SECRET_KEY POSTGRES_PASSWORD DB_PASSWORD; do
             value="$(openssl rand -hex 32)"
             echo "::add-mask::$value"
             echo "$key=$value" >> "$GITHUB_ENV"
@@ -35,12 +35,21 @@ jobs:
         run: |
           docker compose config --quiet
           docker compose build --pull
+      - name: Prepare test databases explicitly with SQL
+        shell: bash
+        run: |
+          docker compose up -d --wait db-clean db-test
+          for variant in clean test; do
+            sed "s/SUBSTITUA_POR_UMA_SENHA_ALEATORIA_COM_24_OU_MAIS_CARACTERES/$DB_PASSWORD/" src/sis_questionario/banco.sql |
+              docker compose exec -T "db-$variant" psql -U sis_owner -d sis_questionario -v ON_ERROR_STOP=1
+          done
       - name: Start both variants
         run: docker compose up -d --wait --wait-timeout 180
-      - name: Check initial clean and profile databases
+      - name: Check initial databases
         run: |
-          docker compose exec -T web-clean python -c "from sis_questionario import bd_exec as db; from sis_questionario.provision import TABLES; c=db.conectar(); assert all(c.execute('SELECT COUNT(*) AS n FROM '+t).fetchone()['n']==0 for t in TABLES); c.close()"
-          docker compose exec -T web-test python -c "from sis_questionario import bd_exec as db; c=db.conectar(); expected={'questionarios':1,'perguntas':11,'opcoes':120,'alunos':0,'envios':0,'respostas':0}; assert all(c.execute('SELECT COUNT(*) AS n FROM '+t).fetchone()['n']==n for t,n in expected.items()); c.close()"
+          for variant in clean test; do
+            docker compose exec -T "web-$variant" python -c "from sis_questionario import bd_exec as db; c=db.conectar(); tables=('alunos','questionarios','perguntas','opcoes','envios','respostas'); assert all(c.execute('SELECT COUNT(*) AS n FROM '+t).fetchone()['n']==0 for t in tables); c.close()"
+          done
           curl --fail http://localhost:5000/healthz
           curl --fail http://localhost:5001/healthz
       - name: Run full suite against password-authenticated PostgreSQL
@@ -51,7 +60,7 @@ jobs:
             -v "$PWD/docs:/validation/docs:ro" \
             -v "$PWD/images:/validation/images:ro" \
             -v "$PWD/src:/validation/src:ro" \
-            prepare-clean python -m unittest discover -s /validation/tests -v
+            web-clean python -m unittest discover -s /validation/tests -v
       - name: Verify restart preserves readiness
         run: |
           docker compose restart web-clean web-test

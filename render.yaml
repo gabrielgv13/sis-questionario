@@ -1,5 +1,4 @@
-# Plano pago: preDeployCommand executa em instância separada.
-# Ver docs/docker-render.md sobre o escopo de credenciais no Render.
+# Execute banco.sql pelo pgAdmin antes de iniciar o web.
 services:
   - type: web
     name: sis-questionario
@@ -8,7 +7,6 @@ services:
     region: oregon
     dockerfilePath: ./images/clean-image/Dockerfile
     dockerContext: .
-    preDeployCommand: /app/.venv/bin/sis-questionario-provision
     healthCheckPath: /healthz
     envVars:
       - key: ADMIN_PASSWORD
@@ -24,11 +22,7 @@ services:
       - key: DB_USER
         value: sis_app
       - key: DB_PASSWORD
-        generateValue: true
-      - key: DB_ADMIN_USER
-        fromDatabase: {name: sis-questionario-db, property: user}
-      - key: DB_ADMIN_PASSWORD
-        fromDatabase: {name: sis-questionario-db, property: password}
+        sync: false
       - key: DB_SSLMODE
         value: require
       - key: COOKIE_SECURE

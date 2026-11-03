@@ -78,7 +78,7 @@ ou respostas. A configuração da devolutiva atualiza também o JSONB salvo.
 Importação e exportação exigem sessão administrativa; a importação exige token
 CSRF. A exclusão continua desabilitada nesta etapa.
 
-Em bancos existentes, execute `uv run sis-questionario-db` antes de iniciar a
+Em bancos existentes, execute `src/sis_questionario/banco.sql` pelo pgAdmin antes de iniciar a
 versão atualizada. A migração cria `documento` e preenche documentos ausentes
 usando os dados já cadastrados, sem recriar perguntas ou remover respostas.
 Com uma conta restrita, o controle de devolutiva precisa de

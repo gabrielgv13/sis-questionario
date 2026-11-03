@@ -1,3 +1,10 @@
+> Atualizacao: a preparacao por Python foi removida. Execute
+> `src/sis_questionario/banco.sql` manualmente no pgAdmin como proprietario.
+> Configure DB_USER=sis_app e DB_PASSWORD com a senha definida no SQL.
+> Nao ha pre-deploy nem comandos sis-questionario-db/sis-questionario-provision.
+> Os trechos abaixo documentam o historico anterior; consulte docker-render.md
+> para o fluxo atual.
+
 # Continuidade do desenvolvimento
 
 ## Atualização Docker/Render — 03/11/2026

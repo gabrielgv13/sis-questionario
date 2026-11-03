@@ -1,6 +1,5 @@
 import os
 import re
-import tempfile
 import unittest
 import uuid
 import runpy
@@ -15,7 +14,7 @@ from psycopg.conninfo import conninfo_to_dict
 from sis_questionario import bd_exec as db
 from sis_questionario.app import create_app
 from sis_questionario.config import conexao_banco
-from sis_questionario.provision import preparar_senha, provisionar, TABLES
+TABLES = ('alunos', 'questionarios', 'perguntas', 'opcoes', 'envios', 'respostas')
 
 
 class DeploymentConfigurationTest(unittest.TestCase):
@@ -28,15 +27,6 @@ class DeploymentConfigurationTest(unittest.TestCase):
             self.assertNotIn('DB_ADMIN_PASSWORD', os.environ)
             self.assertNotIn('DB_ADMIN_USER', os.environ)
             self.assertEqual(execute.call_args.args[0], 'gunicorn')
-
-    def test_generated_password_is_persistent_and_readable_by_connection(self):
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / 'password'
-            with patch.dict(os.environ, {'DB_PASSWORD_FILE': str(path)}):
-                first = preparar_senha()
-                self.assertGreaterEqual(len(first), 48)
-                self.assertEqual(preparar_senha(), first)
-                self.assertEqual(conexao_banco()['password'], first)
 
     def test_admin_password_and_https_cookie(self):
         with patch.dict(os.environ, {'ADMIN_PASSWORD': 'deployment-test-password',
@@ -58,7 +48,7 @@ class DeploymentConfigurationTest(unittest.TestCase):
 
 
 @unittest.skipUnless(os.environ.get('TEST_DATABASE_URL'), 'Configure TEST_DATABASE_URL.')
-class ProvisionDatabaseTest(unittest.TestCase):
+class ManualSqlDatabaseTest(unittest.TestCase):
     """Bancos descartáveis: exige CREATEDB e CREATEROLE no servidor de teste."""
     def setUp(self):
         self.admin = psycopg.connect(os.environ['TEST_DATABASE_URL'], autocommit=True)
@@ -74,13 +64,23 @@ class ProvisionDatabaseTest(unittest.TestCase):
             'DB_NAME': self.database, 'DB_USER': self.role,
             'DB_PASSWORD': uuid.uuid4().hex + uuid.uuid4().hex, 'DB_PASSWORD_FILE': '',
             'DB_ADMIN_USER': options['user'], 'DB_ADMIN_PASSWORD': options['password'],
-            'DB_SSLMODE': options.get('sslmode', 'prefer'), 'SEED_PROFILE': '0',
+            'DB_SSLMODE': options.get('sslmode', 'prefer'),
             'ADMIN_PASSWORD': 'test-admin-password', 'ADMIN_PASSWORD_HASH': '',
             'COOKIE_SECURE': '0', 'TRUST_PROXY': '0', 'SECRET_KEY': uuid.uuid4().hex,
         }
         env = patch.dict(os.environ, self.environment)
         env.start()
         self.addCleanup(env.stop)
+
+    def apply_sql(self):
+        script = Path(db.__file__).with_name('banco.sql').read_text(encoding='utf-8')
+        script = script.replace('sis_app', self.role).replace(
+            'SUBSTITUA_POR_UMA_SENHA_ALEATORIA_COM_24_OU_MAIS_CARACTERES',
+            self.environment['DB_PASSWORD'])
+        options = conninfo_to_dict(os.environ['TEST_DATABASE_URL'])
+        options['dbname'] = self.database
+        with psycopg.connect(**options, autocommit=True) as conn:
+            conn.execute(script)
 
     def cleanup_database(self):
         self.admin.execute(sql.SQL('DROP DATABASE {} WITH (FORCE)').format(sql.Identifier(self.database)))
@@ -90,12 +90,12 @@ class ProvisionDatabaseTest(unittest.TestCase):
         with db.conectar() as conn:
             return conn.execute(sql.SQL('SELECT COUNT(*) FROM {}').format(sql.Identifier(table))).fetchone()['count']
 
-    def test_clean_profile_submission_and_reprovision_preserve_data(self):
-        provisionar()
+    def test_clean_profile_submission_and_sql_rerun_preserve_data(self):
+        self.apply_sql()
         self.assertTrue(all(self.count(table) == 0 for table in TABLES))
-        with patch.dict(os.environ, {'SEED_PROFILE': '1'}):
-            provisionar()
-            provisionar()
+        db.inicializar_banco()
+        self.apply_sql()
+        db.inicializar_banco()
         self.assertEqual(self.count('questionarios'), 1)
         self.assertEqual(self.count('perguntas'), 11)
         self.assertEqual(self.count('opcoes'), 120)
@@ -115,7 +115,7 @@ class ProvisionDatabaseTest(unittest.TestCase):
         answers['token_formulario'] = token
         self.assertIn(client.post('/submit-pesquisa', data=answers).status_code, (200, 302))
         self.assertEqual(self.count('envios'), 1)
-        provisionar()
+        self.apply_sql()
         self.assertEqual(self.count('envios'), 1)
         with db.conectar() as conn:
             self.assertEqual(conn.execute('SELECT nome FROM alunos').fetchone()['nome'], malicious)
@@ -127,7 +127,7 @@ class ProvisionDatabaseTest(unittest.TestCase):
         db.configurar_devolutiva(quiz['id_questionario'], False)
 
     def test_privileges_are_restricted(self):
-        provisionar()
+        self.apply_sql()
         commands = ['CREATE TABLE public.forbidden (id int)', 'ALTER TABLE public.alunos ADD COLUMN forbidden int',
                     'DROP TABLE public.respostas', 'TRUNCATE public.alunos CASCADE',
                     'DELETE FROM public.alunos', 'UPDATE public.questionarios SET titulo = \'forbidden\'',
@@ -138,15 +138,15 @@ class ProvisionDatabaseTest(unittest.TestCase):
                     conn.execute(command)
                 conn.rollback()
 
-    def test_concurrent_provisioning_is_serialized(self):
+    def test_concurrent_sql_setup_is_serialized(self):
         with ThreadPoolExecutor(max_workers=2) as executor:
-            futures = [executor.submit(provisionar) for _ in range(2)]
+            futures = [executor.submit(self.apply_sql) for _ in range(2)]
             for future in futures:
                 future.result(timeout=40)
         self.assertTrue(all(self.count(table) == 0 for table in TABLES))
 
     def test_wrong_password_does_not_rotate(self):
-        provisionar()
+        self.apply_sql()
         wrong = uuid.uuid4().hex
         try:
             with psycopg.connect(**{**conexao_banco(), 'password': wrong}):
@@ -155,8 +155,11 @@ class ProvisionDatabaseTest(unittest.TestCase):
             pass
         else:
             self.skipTest('Servidor de teste aceita conexão sem verificar senha (trust).')
-        with patch.dict(os.environ, {'DB_PASSWORD': wrong}):
-            with self.assertRaisesRegex(ValueError, 'senha'):
-                provisionar()
+        original = self.environment['DB_PASSWORD']
+        self.environment['DB_PASSWORD'] = wrong
+        try:
+            self.apply_sql()
+        finally:
+            self.environment['DB_PASSWORD'] = original
         with db.conectar() as conn:
             self.assertEqual(conn.execute('SELECT 1').fetchone()['?column?'], 1)

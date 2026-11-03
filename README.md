@@ -4,74 +4,44 @@ Aplicação com Flask, PostgreSQL/Psycopg, Tailwind CSS e painel de análise int
 Permite cadastrar participantes, escolher questionários e responder todas as
 perguntas em um único formulário. Cada navegador pode enviar uma vez por questionário.
 
-## Docker e Render
+## Configurar o banco e executar
 
-Consulte [o guia Docker, Docker Hub e Render](docs/docker-render.md) para executar
-as variantes `clean-image` (banco novo sem questionários) e `test-image` (Perfil
-pronto, sem respostas fictícias), configurar a senha administrativa pelo Compose
-e publicar em `gabrielgventura/sis-questionario`. As duas variantes preservam
-dados existentes e usam uma conta PostgreSQL restrita criada pelo provisionador.
+Requisitos: Python 3.14+, uv e PostgreSQL. Crie o banco no Render ou no pgAdmin.
+Python apenas conecta ao banco existente; nao cria banco, roles ou tabelas.
 
-## Configurar e executar
-
-Requisitos: Python 3.14+, [uv](https://docs.astral.sh/uv/) e PostgreSQL em execução.
-O cliente `psql` e `PSQL_PATH` não são necessários: Psycopg conecta diretamente ao servidor.
-Node.js só é necessário para recompilar o CSS.
-
-Após clonar, com o PostgreSQL local configurado com usuário e senha `postgres`:
+1. Conecte ao banco pelo pgAdmin usando a conta proprietaria.
+2. Abra [`src/sis_questionario/banco.sql`](src/sis_questionario/banco.sql) no Query Tool.
+3. Edite a senha de `sis_app` no inicio do arquivo e execute o arquivo inteiro.
+4. Configure `.env` ou as variaveis do servico com `DB_HOST`, `DB_PORT`, `DB_NAME`,
+   `DB_USER=sis_app` e `DB_PASSWORD` igual a senha do SQL.
+5. Configure `SECRET_KEY` e `ADMIN_PASSWORD` (ou `ADMIN_PASSWORD_HASH`).
 
 ```powershell
 uv sync
 uv run sis-questionario
 ```
 
-Abra http://127.0.0.1:5000. Pressione `Ctrl+C` para encerrar.
+Abra http://127.0.0.1:5000. O banco fica sem questionarios, pronto para importar
+JSON pelo admin. Opcionalmente, `uv run sis-questionario-perfil` cadastra somente
+os dados do Questionario de Perfil antes de iniciar o web; exige tabelas existentes.
+Reiniciar nao aplica SQL nem altera a estrutura.
 
-O comando padrão prepara as tabelas e inicia sem cadastrar questionários. Em
-um banco novo, o sistema fica vazio, pronto para importar questionários no admin.
-Para iniciar com o **Questionário de Perfil** e sua classificação prontos:
+O SQL unico inclui tabelas, indices, atualizacoes de estruturas antigas e a role
+restrita da aplicacao. Execute novamente como proprietario quando houver atualizacoes
+do esquema; os registros e a senha de uma role existente sao preservados.
+Use a senha existente em DB_PASSWORD ao reaplicar. Para trocar a senha, altere-a
+explicitamente no PostgreSQL e atualize o segredo no servico.
+O arquivo nao inclui participantes ou respostas ficticias.
 
-```powershell
-uv run sis-questionario-perfil
-```
-
-Os dois comandos preparam o banco automaticamente. O comando com Perfil cadastra
-somente o questionário, sem participantes fictícios. Reexecutá-lo não duplica ou
-sobrescreve perguntas existentes. Iniciar pelo comando padrão depois disso
-preserva os questionários e respostas; nenhum comando de inicialização apaga dados.
-`uv run sis-questionario-db` permanece disponível para preparar somente a estrutura.
-
-O `.env` é opcional. Os padrões locais são `DB_HOST=localhost`, `DB_PORT=5432`,
-`DB_NAME=mydatabase`, `DB_USER=postgres` e `DB_PASSWORD=postgres`.
-Para personalizar, copie `.env.example` para `.env` e altere os valores.
-Variáveis do ambiente têm prioridade. Preserve um `.env` existente.
-Para usar um administrador separado no setup, defina `DB_ADMIN_USER` e
-`DB_ADMIN_PASSWORD`; por padrão ele usa as credenciais de conexão do app.
-O comando usa a senha configurada, sem prompt, e não altera a senha do servidor.
-
-Essas credenciais padrão são para desenvolvimento local. Na hospedagem, configure
-credenciais próprias e uma `SECRET_KEY` estável e aleatória:
-`uv run python -c "import secrets; print(secrets.token_hex(32))"`.
-
-## Preparação do banco
-
-O setup cria o banco se necessário e aplica `src/sis_questionario/banco.sql`
-em uma transação. Reexecutar preserva os registros e reaplica a estrutura.
-O SQL é SQL PostgreSQL comum, sem comandos específicos do `psql`.
-O usuário do setup precisa poder criar o banco e suas tabelas.
-O setup não cria usuários; `DB_USER` deve existir no servidor.
-
-Somente `sis-questionario-perfil` cadastra o Perfil usando `SELECT` e `INSERT`.
-Criar a aplicação Flask diretamente não prepara nem popula o banco. Em uma
-hospedagem com conta restrita, execute a preparação como administrador antes
-de servir a aplicação com `sis_questionario.app:create_app`. Conceda `CONNECT` no banco,
-`USAGE` no schema `public` e nas sequências, e `SELECT` e `INSERT` nas seis tabelas.
+Variaveis do ambiente tem prioridade sobre `.env`. Preserve seu `.env` existente.
+Para Docker e os passos de conexao ao Render, consulte
+[o guia de deploy](docs/docker-render.md).
 
 ## Painel administrativo
 
 Para experimentar os gráficos com dados fictícios, execute
 [`docs/popular_perfil.sql`](docs/popular_perfil.sql) no banco da aplicação pelo
-editor SQL do pgAdmin. Prepare as tabelas antes com `uv run sis-questionario-db`.
+editor SQL do pgAdmin. Prepare as tabelas antes executando `banco.sql` no pgAdmin.
 O script usa INSERTs para cadastrar o questionário de perfil, suas perguntas e
 alternativas, 120 participantes fictícios e 1.320 respostas. Pode ser reexecutado
 sem duplicar os envios de exemplo e não altera respostas existentes. Os envios
@@ -91,7 +61,7 @@ com estrutura salva em `questionarios.documento` (JSONB). Há um
 [exemplo completo do Perfil](docs/questionario_perfil.json) e um
 [JSON Schema](docs/questionario.schema.json). A importação não sobrescreve códigos
 existentes; para importar uma cópia, altere o código no arquivo. Execute
-`uv run sis-questionario-db` para migrar os questionários existentes antes de usar.
+`src/sis_questionario/banco.sql` pelo pgAdmin para migrar os questionários existentes antes de usar.
 A exclusão continua apenas como prévia. Sua janela informa que a futura ação
 também removerá os envios e as respostas associados.
 
@@ -161,7 +131,7 @@ as dependências novas.
 
 ## Devolutiva e classificação de perfis
 
-Depois de atualizar o código, execute `uv run sis-questionario-db` antes de
+Depois de atualizar o código, execute `src/sis_questionario/banco.sql` pelo pgAdmin antes de
 reiniciar o aplicativo. A migração adiciona a configuração nos questionários e
 um resultado JSON por envio, sem remover dados. O Questionário de Perfil recebe
 o algoritmo `perfil_v1` e a devolutiva habilitada na primeira migração.
@@ -209,7 +179,6 @@ src/sis_questionario/
     app.py              # Rotas e criação do Flask
     bd_exec.py          # Consultas e gravação transacional
     config.py          # Leitura do .env
-    setup_db.py        # Execução do SQL pelo administrador
     banco.sql          # Único arquivo SQL do projeto
     perguntas.json     # Carga opcional do Questionário de Perfil
     perfil_v1.json     # Pesos versionados da classificação

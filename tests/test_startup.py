@@ -17,20 +17,20 @@ from sis_questionario.questionario_json import validar
 
 
 class StartupUnitTest(unittest.TestCase):
-    def test_default_prepares_database_without_loading_profile(self):
-        with patch('sis_questionario.setup_db.main') as prepare, patch.object(db, 'inicializar_banco') as seed, patch('sis_questionario.app.create_app') as create:
+    def test_default_serves_without_preparing_database_or_loading_profile(self):
+        with patch.object(db, 'conectar') as connect, patch.object(db, 'inicializar_banco') as seed, patch('sis_questionario.app.create_app') as create:
             main()
-            prepare.assert_called_once_with()
+            connect.assert_not_called()
             seed.assert_not_called()
             create.assert_called_once_with()
             create.return_value.run.assert_called_once_with(host='127.0.0.1', port=5000)
 
-    def test_profile_prepares_before_loading_and_serving(self):
+    def test_profile_loads_data_before_serving(self):
         actions = []
-        with patch('sis_questionario.setup_db.main', side_effect=lambda: actions.append('prepare')), patch.object(db, 'inicializar_banco', side_effect=lambda: actions.append('profile')), patch('sis_questionario.app.create_app') as create:
+        with patch.object(db, 'inicializar_banco', side_effect=lambda: actions.append('profile')), patch('sis_questionario.app.create_app') as create:
             create.side_effect = lambda: actions.append('app') or unittest.mock.Mock()
             main_perfil()
-        self.assertEqual(actions, ['prepare', 'profile', 'app'])
+        self.assertEqual(actions, ['profile', 'app'])
 
     def test_previous_json_identifier_is_normalized(self):
         path = Path(__file__).resolve().parents[1] / 'docs/questionario_perfil.json'
@@ -60,9 +60,7 @@ class StartupDatabaseTest(unittest.TestCase):
         patcher = patch.object(db, 'conectar', connect)
         patcher.start()
         self.addCleanup(patcher.stop)
-        prepare = patch('sis_questionario.setup_db.main', side_effect=lambda: self.conn.execute(self.structure))
-        prepare.start()
-        self.addCleanup(prepare.stop)
+        self.conn.execute(self.structure)
         serve = patch('flask.Flask.run')
         serve.start()
         self.addCleanup(serve.stop)
@@ -99,6 +97,7 @@ class StartupDatabaseTest(unittest.TestCase):
         quiz = db.listar_questionarios()[0]['id_questionario']
         original = dict(version=VERSAO_ANTERIOR, scores={'esportes': 140}, winners=['esportes'], category='esportes')
         self.conn.execute('INSERT INTO envios (id_aluno, id_questionario, resultado) VALUES (%s,%s,%s)', (aluno, quiz, Jsonb(original)))
+        self.conn.execute(self.structure)
         main()
         saved = self.conn.execute('SELECT resultado FROM envios').fetchone()['resultado']
         self.assertEqual(saved, {**original, 'version': VERSAO})

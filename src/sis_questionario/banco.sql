@@ -1,5 +1,39 @@
--- Estrutura aplicada pelo setup_db usando Psycopg.
-SET search_path TO public;
+-- ALL IN ONE: execute este arquivo inteiro no Query Tool do pgAdmin.
+-- Conecte ao banco JA CRIADO pelo Render, usando a conta proprietaria.
+-- Edite apenas a senha abaixo e use a mesma senha em DB_PASSWORD no web.
+-- DB_USER deve ser sis_app. Nao use a conta proprietaria no web.
+-- Reexecutavel: preserva dados e nao troca a senha de uma role existente.
+BEGIN;
+SET LOCAL search_path TO public;
+SET LOCAL lock_timeout = '30s';
+SELECT pg_advisory_xact_lock(734190261);
+
+DO $setup$
+DECLARE
+    senha TEXT := 'SUBSTITUA_POR_UMA_SENHA_ALEATORIA_COM_24_OU_MAIS_CARACTERES';
+    existente RECORD;
+BEGIN
+    IF senha LIKE 'SUBSTITUA_%' OR length(senha) < 24 THEN
+        RAISE EXCEPTION 'Edite a senha de sis_app no inicio do arquivo (minimo 24 caracteres).';
+    END IF;
+    IF current_user = 'sis_app' THEN
+        RAISE EXCEPTION 'Execute como proprietario do banco, nao como sis_app.';
+    END IF;
+    SELECT * INTO existente FROM pg_roles WHERE rolname = 'sis_app';
+    IF FOUND THEN
+        IF NOT existente.rolcanlogin OR existente.rolsuper OR existente.rolcreatedb OR existente.rolcreaterole
+           OR existente.rolreplication OR existente.rolbypassrls
+           OR EXISTS (SELECT 1 FROM pg_auth_members WHERE member = existente.oid)
+           OR EXISTS (SELECT 1 FROM pg_class WHERE relowner = existente.oid)
+           OR EXISTS (SELECT 1 FROM pg_database WHERE datdba = existente.oid)
+           OR EXISTS (SELECT 1 FROM pg_namespace WHERE nspowner = existente.oid) THEN
+            RAISE EXCEPTION 'sis_app existente possui privilegios ou propriedade incompativeis.';
+        END IF;
+        -- A senha existente e preservada; configure DB_PASSWORD com essa senha.
+    ELSE
+        EXECUTE format('CREATE ROLE sis_app LOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD %L', senha);
+    END IF;
+END $setup$;
 
 -- INICIO_TABELAS
 CREATE TABLE IF NOT EXISTS alunos (
@@ -86,3 +120,20 @@ UPDATE questionarios q SET documento = jsonb_build_object(
         FROM perguntas p WHERE p.id_questionario = q.id_questionario), '[]'::jsonb))
 WHERE q.documento IS NULL;
 -- FIM_TABELAS
+
+-- Permissoes da aplicacao: sem DDL, DELETE ou TRUNCATE.
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+REVOKE CREATE ON SCHEMA public FROM sis_app;
+DO $permissions$
+BEGIN
+    EXECUTE format('REVOKE CREATE ON DATABASE %I FROM sis_app', current_database());
+    EXECUTE format('GRANT CONNECT ON DATABASE %I TO sis_app', current_database());
+END $permissions$;
+GRANT USAGE ON SCHEMA public TO sis_app;
+REVOKE ALL ON alunos, questionarios, perguntas, opcoes, envios, respostas FROM sis_app;
+GRANT SELECT, INSERT ON alunos, questionarios, perguntas, opcoes, envios, respostas TO sis_app;
+GRANT UPDATE (exibir_resultado, documento) ON questionarios TO sis_app;
+GRANT USAGE ON SEQUENCE alunos_id_aluno_seq, questionarios_id_questionario_seq,
+    perguntas_id_pergunta_seq, opcoes_id_opcao_seq, envios_id_envio_seq,
+    respostas_id_resposta_seq TO sis_app;
+COMMIT;

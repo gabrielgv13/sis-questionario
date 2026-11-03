@@ -1,5 +1,5 @@
 -- Dados ficticios para demonstrar os graficos e filtros do painel.
--- Execute no banco configurado em DB_NAME, apos sis-questionario-db.
+-- Execute no banco configurado em DB_NAME, apos executar banco.sql pelo pgAdmin.
 -- Cria o questionario de perfil se necessario e 120 participantes ficticios.
 -- Pode ser reexecutado: nao duplica os mesmos envios nem altera respostas existentes.
 -- Inclui resultado JSONB do perfil_v1, calculado pelas regras da aplicacao.

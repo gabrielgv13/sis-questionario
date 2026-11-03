@@ -2,7 +2,7 @@ x-app-env: &app-env
   DB_NAME: sis_questionario
   DB_PORT: "5432"
   DB_USER: sis_app
-  DB_PASSWORD_FILE: /secrets/db-password
+  DB_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD igual a senha de sis_app no SQL}
   DB_SSLMODE: disable
 
 x-web-env: &web-env
@@ -41,20 +41,7 @@ services:
     <<: *db
     profiles: [clean]
     volumes: [clean-db:/var/lib/postgresql]
-    networks: [clean]
-  prepare-clean:
-    image: gabrielgventura/sis-questionario:clean
-    profiles: [clean]
-    build: {context: ., dockerfile: images/clean-image/Dockerfile}
-    command: [sis-questionario-provision]
-    environment:
-      <<: *app-env
-      DB_HOST: db-clean
-      DB_ADMIN_USER: sis_owner
-      DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD}
-    volumes: [clean-secrets:/secrets]
-    depends_on:
-      db-clean: {condition: service_healthy}
+    ports: ["127.0.0.1:5433:5432"]
     networks: [clean]
   web-clean:
     image: gabrielgventura/sis-questionario:clean
@@ -64,29 +51,15 @@ services:
     environment:
       <<: *web-env
       DB_HOST: db-clean
-    volumes: [clean-secrets:/secrets:ro]
     ports: ["127.0.0.1:5000:10000"]
     depends_on:
-      prepare-clean: {condition: service_completed_successfully}
+      db-clean: {condition: service_healthy}
     networks: [clean]
   db-test:
     <<: *db
     profiles: [test]
     volumes: [test-db:/var/lib/postgresql]
-    networks: [test]
-  prepare-test:
-    image: gabrielgventura/sis-questionario:test
-    profiles: [test]
-    build: {context: ., dockerfile: images/test-image/Dockerfile}
-    command: [sis-questionario-provision]
-    environment:
-      <<: *app-env
-      DB_HOST: db-test
-      DB_ADMIN_USER: sis_owner
-      DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD}
-    volumes: [test-secrets:/secrets]
-    depends_on:
-      db-test: {condition: service_healthy}
+    ports: ["127.0.0.1:5434:5432"]
     networks: [test]
   web-test:
     image: gabrielgventura/sis-questionario:test
@@ -96,17 +69,14 @@ services:
     environment:
       <<: *web-env
       DB_HOST: db-test
-    volumes: [test-secrets:/secrets:ro]
     ports: ["127.0.0.1:5001:10000"]
     depends_on:
-      prepare-test: {condition: service_completed_successfully}
+      db-test: {condition: service_healthy}
     networks: [test]
 
 volumes:
   clean-db:
   test-db:
-  clean-secrets:
-  test-secrets:
 networks:
   clean:
   test:
