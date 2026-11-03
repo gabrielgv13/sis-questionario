@@ -16,6 +16,8 @@ def main():
         port=int(os.environ.get('DB_PORT', '5432')),
         user=os.environ.get('DB_ADMIN_USER') or os.environ.get('DB_USER', 'postgres'),
         password=os.environ.get('DB_ADMIN_PASSWORD', os.environ.get('DB_PASSWORD', 'postgres')),
+        sslmode=os.environ.get('DB_SSLMODE', 'prefer'),
+        connect_timeout=5,
     )
     # CREATE DATABASE must run outside a transaction.
     with psycopg.connect(**conexao, dbname='postgres', autocommit=True) as conn:

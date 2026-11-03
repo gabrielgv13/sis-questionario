@@ -71,7 +71,7 @@ class AdminAccessTest(unittest.TestCase):
         self.client.post('/admin/login', data={'csrf_token': self.token(), 'password': 'wrong'})
         with self.client.session_transaction() as session:
             self.assertFalse(session.get('admin_authenticated'))
-        with patch.dict(os.environ, {'ADMIN_PASSWORD_HASH': ''}):
+        with patch.dict(self.app.config, {'ADMIN_PASSWORD_HASH': ''}):
             self.assertEqual(self.client.get('/admin/login').status_code, 503)
         self.assertEqual(self.login().status_code, 302)
 

@@ -1,0 +1,45 @@
+# Plano pago: preDeployCommand executa em instância separada.
+# Ver docs/docker-render.md sobre o escopo de credenciais no Render.
+services:
+  - type: web
+    name: sis-questionario
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./images/clean-image/Dockerfile
+    dockerContext: .
+    preDeployCommand: /app/.venv/bin/sis-questionario-provision
+    healthCheckPath: /healthz
+    envVars:
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DB_HOST
+        fromDatabase: {name: sis-questionario-db, property: host}
+      - key: DB_PORT
+        fromDatabase: {name: sis-questionario-db, property: port}
+      - key: DB_NAME
+        fromDatabase: {name: sis-questionario-db, property: database}
+      - key: DB_USER
+        value: sis_app
+      - key: DB_PASSWORD
+        generateValue: true
+      - key: DB_ADMIN_USER
+        fromDatabase: {name: sis-questionario-db, property: user}
+      - key: DB_ADMIN_PASSWORD
+        fromDatabase: {name: sis-questionario-db, property: password}
+      - key: DB_SSLMODE
+        value: require
+      - key: COOKIE_SECURE
+        value: "1"
+      - key: TRUST_PROXY
+        value: "1"
+databases:
+  - name: sis-questionario-db
+    databaseName: sis_questionario
+    user: sis_owner
+    plan: basic-256mb
+    region: oregon
+    postgresMajorVersion: "18"
+    ipAllowList: []

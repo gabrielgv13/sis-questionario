@@ -9,12 +9,14 @@ dependencies = [
     "psycopg[binary]>=3.3.6",
     "python-dotenv>=1.0",
     "reportlab>=5.1.0",
+    "gunicorn>=23.0.0; sys_platform != 'win32'",
 ]
 
 [project.scripts]
 sis-questionario = "sis_questionario:main"
 sis-questionario-perfil = "sis_questionario:main_perfil"
 sis-questionario-db = "sis_questionario.setup_db:main"
+sis-questionario-provision = "sis_questionario.provision:main"
 
 [build-system]
 requires = ["uv_build>=0.12.15,<0.13.0"]

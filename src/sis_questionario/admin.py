@@ -1,10 +1,9 @@
 """Authenticated, aggregate-only reporting interface."""
-import os
 import json
 import secrets
 from functools import wraps
 
-from flask import Blueprint, abort, jsonify, redirect, render_template, request, session, url_for, Response
+from flask import Blueprint, abort, jsonify, redirect, render_template, request, session, url_for, Response, current_app
 from werkzeug.security import check_password_hash
 
 from . import bd_exec as db
@@ -36,7 +35,7 @@ def check_csrf(value):
 
 @admin.route('/login', methods=['GET', 'POST'])
 def login():
-    password_hash = os.environ.get('ADMIN_PASSWORD_HASH')
+    password_hash = current_app.config.get('ADMIN_PASSWORD_HASH')
     if not password_hash:
         return render_template('admin_login.html', token=csrf_token(),
                                error='Acesso administrativo ainda não configurado.'), 503

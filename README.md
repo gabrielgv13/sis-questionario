@@ -4,6 +4,14 @@ Aplicação com Flask, PostgreSQL/Psycopg, Tailwind CSS e painel de análise int
 Permite cadastrar participantes, escolher questionários e responder todas as
 perguntas em um único formulário. Cada navegador pode enviar uma vez por questionário.
 
+## Docker e Render
+
+Consulte [o guia Docker, Docker Hub e Render](docs/docker-render.md) para executar
+as variantes `clean-image` (banco novo sem questionários) e `test-image` (Perfil
+pronto, sem respostas fictícias), configurar a senha administrativa pelo Compose
+e publicar em `gabrielgventura/sis-questionario`. As duas variantes preservam
+dados existentes e usam uma conta PostgreSQL restrita criada pelo provisionador.
+
 ## Configurar e executar
 
 Requisitos: Python 3.14+, [uv](https://docs.astral.sh/uv/) e PostgreSQL em execução.

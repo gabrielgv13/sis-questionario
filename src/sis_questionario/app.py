@@ -3,6 +3,9 @@ import secrets
 from uuid import UUID, uuid4
 
 from flask import Flask, abort, g, redirect, render_template, request, session, url_for
+from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.security import generate_password_hash
+import psycopg
 
 from . import bd_exec as db
 from .config import carregar_configuracao
@@ -15,7 +18,12 @@ def create_app(inicializar=False):
         SECRET_KEY=os.environ.get('SECRET_KEY') or secrets.token_hex(32),
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE='Lax',
+        SESSION_COOKIE_SECURE=os.environ.get('COOKIE_SECURE') == '1',
+        ADMIN_PASSWORD_HASH=os.environ.get('ADMIN_PASSWORD_HASH') or (
+            generate_password_hash(os.environ['ADMIN_PASSWORD']) if os.environ.get('ADMIN_PASSWORD') else None),
     )
+    if os.environ.get('TRUST_PROXY') == '1':
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=0, x_proto=1, x_host=0)
     if inicializar:
         db.inicializar_banco()
 
@@ -50,13 +58,22 @@ def create_app(inicializar=False):
         if request.cookies.get('id_dispositivo') != g.id_dispositivo:
             response.set_cookie(
                 'id_dispositivo', g.id_dispositivo, max_age=60 * 60 * 24 * 365,
-                httponly=True, samesite='Lax', secure=request.is_secure,
+                httponly=True, samesite='Lax', secure=app.config['SESSION_COOKIE_SECURE'] or request.is_secure,
             )
         return response
 
     @app.route('/')
     def index():
         return render_template('index.html', questionarios=db.listar_questionarios())
+
+    @app.get('/healthz')
+    def health():
+        try:
+            with db.conectar() as conn:
+                conn.execute('SELECT 1 FROM questionarios LIMIT 1')
+            return {'status': 'ok'}
+        except psycopg.Error:
+            return {'status': 'unavailable'}, 503
 
     @app.route('/submit-info', methods=['POST'])
     def submit():

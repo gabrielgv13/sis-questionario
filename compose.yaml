@@ -1,0 +1,112 @@
+x-app-env: &app-env
+  DB_NAME: sis_questionario
+  DB_PORT: "5432"
+  DB_USER: sis_app
+  DB_PASSWORD_FILE: /secrets/db-password
+  DB_SSLMODE: disable
+
+x-web-env: &web-env
+  <<: *app-env
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Defina ADMIN_PASSWORD no arquivo de ambiente}
+  SECRET_KEY: ${SECRET_KEY:?Defina SECRET_KEY no arquivo de ambiente}
+  PORT: "10000"
+
+x-db: &db
+  image: postgres:18
+  environment:
+    POSTGRES_DB: sis_questionario
+    POSTGRES_USER: sis_owner
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo de ambiente}
+  healthcheck:
+    test: [CMD-SHELL, "pg_isready -U sis_owner -d sis_questionario"]
+    interval: 5s
+    timeout: 3s
+    retries: 20
+
+x-web: &web
+  restart: unless-stopped
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  healthcheck:
+    test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:10000/healthz', timeout=6)"]
+    interval: 20s
+    timeout: 8s
+    retries: 3
+    start_period: 20s
+
+services:
+  db-clean:
+    <<: *db
+    profiles: [clean]
+    volumes: [clean-db:/var/lib/postgresql]
+    networks: [clean]
+  prepare-clean:
+    image: gabrielgventura/sis-questionario:clean
+    profiles: [clean]
+    build: {context: ., dockerfile: images/clean-image/Dockerfile}
+    command: [sis-questionario-provision]
+    environment:
+      <<: *app-env
+      DB_HOST: db-clean
+      DB_ADMIN_USER: sis_owner
+      DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD}
+    volumes: [clean-secrets:/secrets]
+    depends_on:
+      db-clean: {condition: service_healthy}
+    networks: [clean]
+  web-clean:
+    image: gabrielgventura/sis-questionario:clean
+    <<: *web
+    profiles: [clean]
+    build: {context: ., dockerfile: images/clean-image/Dockerfile}
+    environment:
+      <<: *web-env
+      DB_HOST: db-clean
+    volumes: [clean-secrets:/secrets:ro]
+    ports: ["127.0.0.1:5000:10000"]
+    depends_on:
+      prepare-clean: {condition: service_completed_successfully}
+    networks: [clean]
+  db-test:
+    <<: *db
+    profiles: [test]
+    volumes: [test-db:/var/lib/postgresql]
+    networks: [test]
+  prepare-test:
+    image: gabrielgventura/sis-questionario:test
+    profiles: [test]
+    build: {context: ., dockerfile: images/test-image/Dockerfile}
+    command: [sis-questionario-provision]
+    environment:
+      <<: *app-env
+      DB_HOST: db-test
+      DB_ADMIN_USER: sis_owner
+      DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD}
+    volumes: [test-secrets:/secrets]
+    depends_on:
+      db-test: {condition: service_healthy}
+    networks: [test]
+  web-test:
+    image: gabrielgventura/sis-questionario:test
+    <<: *web
+    profiles: [test]
+    build: {context: ., dockerfile: images/test-image/Dockerfile}
+    environment:
+      <<: *web-env
+      DB_HOST: db-test
+    volumes: [test-secrets:/secrets:ro]
+    ports: ["127.0.0.1:5001:10000"]
+    depends_on:
+      prepare-test: {condition: service_completed_successfully}
+    networks: [test]
+
+volumes:
+  clean-db:
+  test-db:
+  clean-secrets:
+  test-secrets:
+networks:
+  clean:
+  test:

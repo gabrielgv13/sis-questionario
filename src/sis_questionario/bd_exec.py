@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 from uuid import UUID
 
@@ -8,22 +7,14 @@ from psycopg import sql
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from .config import carregar_configuracao
+from .config import carregar_configuracao, conexao_banco
 from .perfis import CATEGORIAS, VERSAO, classificar
 from .questionario_json import validar
 
 
 def conectar():
     carregar_configuracao()
-    senha = os.environ.get('DB_PASSWORD', 'postgres')
-    return psycopg.connect(
-        host=os.environ.get('DB_HOST', 'localhost'),
-        port=int(os.environ.get('DB_PORT', '5432')),
-        dbname=os.environ.get('DB_NAME', 'mydatabase'),
-        user=os.environ.get('DB_USER', 'postgres'),
-        password=senha,
-        row_factory=dict_row,
-    )
+    return psycopg.connect(**conexao_banco(), row_factory=dict_row)
 
 
 class QuestionarioExistente(ValueError):

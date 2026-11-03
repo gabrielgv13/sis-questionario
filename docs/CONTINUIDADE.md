@@ -1,5 +1,36 @@
 # Continuidade do desenvolvimento
 
+## Atualização Docker/Render — 03/11/2026
+
+Branch de trabalho: `feat/docker-render`. Implementadas receitas em
+`images/clean-image` e `images/test-image`, Compose com redes/bancos/segredos
+separados, provisionador de role restrita, Gunicorn, healthcheck e configuração
+de HTTPS. O guia operacional é `docs/docker-render.md`; o plano original está
+em `docs/PLANO-DOCKER-RENDER.md`. O `.env` existente foi preservado.
+
+O comando `sis-questionario-provision` exige banco dedicado já criado e uma conta
+preparadora com CREATEROLE e propriedade dos objetos. Ele não substitui o CLI
+local antigo: aplica migrações, cria uma role restrita e opcionalmente instala o
+Perfil conforme SEED_PROFILE. Não apaga registros nem rotaciona senhas existentes.
+ADMIN_PASSWORD agora também é aceito; ADMIN_PASSWORD_HASH tem prioridade.
+
+Validação local: 60 testes executados, 59 aprovados e 1 ignorado porque o servidor
+PostgreSQL local aceita autenticação trust. Inclui bancos descartáveis, envio pelo
+Flask, restrição de DDL e concorrência do provisionamento. Schema oficial do Render
+validado. Docker e WSL não estão instalados nesta máquina; build/teste de containers
+e publicação serão realizados pelo GitHub Actions antes do push ao Docker Hub.
+Não confundir esses resultados locais com validação de containers ou deploy Render.
+
+Destino solicitado pelo usuário: `gabrielgventura/sis-questionario`, tags `clean`
+e `test` mais sufixo de commit. O workflow `.github/workflows/docker-publish.yml`
+usa o secret DOCKERHUB_TOKEN, configurado pelo usuário, e faz push somente após
+build e testes. Nenhum segredo foi gravado no código.
+
+O Blueprint Render usa pré-deploy em plano pago. As credenciais administrativas
+pertencem ao serviço no provedor, mas são removidas do ambiente antes do exec do
+Gunicorn. Para isolamento completo, usar provisionamento externo e retirar essas
+credenciais do serviço web, conforme o guia. Nenhum recurso Render foi criado.
+
 Registro da sessão encerrada em **03/11/2026**, no fuso America/Sao_Paulo.
 Este documento descreve o estado ao final da sessão. Antes de continuar, confira
 os arquivos atuais e as alterações locais do usuário: este registro não substitui
