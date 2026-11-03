@@ -50,6 +50,7 @@ jobs:
             -v "$PWD/tests:/validation/tests:ro" \
             -v "$PWD/docs:/validation/docs:ro" \
             -v "$PWD/images:/validation/images:ro" \
+            -v "$PWD/src:/validation/src:ro" \
             prepare-clean python -m unittest discover -s /validation/tests -v
       - name: Verify restart preserves readiness
         run: |
