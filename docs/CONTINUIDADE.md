@@ -16,10 +16,17 @@ ADMIN_PASSWORD agora também é aceito; ADMIN_PASSWORD_HASH tem prioridade.
 
 Validação local: 60 testes executados, 59 aprovados e 1 ignorado porque o servidor
 PostgreSQL local aceita autenticação trust. Inclui bancos descartáveis, envio pelo
-Flask, restrição de DDL e concorrência do provisionamento. Schema oficial do Render
-validado. Docker e WSL não estão instalados nesta máquina; build/teste de containers
-e publicação serão realizados pelo GitHub Actions antes do push ao Docker Hub.
-Não confundir esses resultados locais com validação de containers ou deploy Render.
+Flask, restrição de DDL e concorrência do provisionamento. Schemas oficiais do Render,
+Compose e GitHub Actions validados. Docker e WSL não estão instalados nesta máquina.
+O GitHub Actions construiu e iniciou as duas imagens Linux, verificou os bancos
+clean/test e executou os **60 testes com sucesso, sem skips**, usando PostgreSQL 18
+com autenticação por senha. O teste de reinício também passou. Execução:
+https://github.com/gabrielgv13/sis-questionario/actions/runs/41687039017
+O deploy no Render ainda não foi executado.
+
+Publicação concluída pelo GitHub Actions no commit
+`a5ab37cb09e35ada115d092fda18386d762d4359`: tags `clean`, `test` e suas variantes
+com sufixo de commit já enviadas ao Docker Hub. Digests registrados no guia.
 
 Destino solicitado pelo usuário: `gabrielgventura/sis-questionario`, tags `clean`
 e `test` mais sufixo de commit. O workflow `.github/workflows/docker-publish.yml`

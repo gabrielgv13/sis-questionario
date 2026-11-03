@@ -52,6 +52,19 @@ e `test`, além de tags versionadas para permitir rollback. Faça login localmen
 com uma conta que tenha permissão de push nesse repositório; não grave tokens
 no código ou no arquivo Compose.
 
+Publicação validada em 03/11/2026, commit
+`a5ab37cb09e35ada115d092fda18386d762d4359`. Ambas as imagens Linux/amd64 foram
+construídas, iniciadas e testadas; **60 testes passaram sem skips**, mais os
+checks de banco inicial, healthcheck e reinício. [Workflow concluído](https://github.com/gabrielgv13/sis-questionario/actions/runs/41687039017).
+
+| Tag publicada | Digest |
+| --- | --- |
+| `gabrielgventura/sis-questionario:clean` | `sha256:e919931cdada1d7943e527d8793e4b9de097644b7355c4a37a114196fec4c344` |
+| `gabrielgventura/sis-questionario:test` | `sha256:0f9c336425925c6ee9147991eef0fefce1f765dd925725eecc4f929729c3ba4f` |
+
+As tags `clean-a5ab37cb09e35ada115d092fda18386d762d4359` e
+`test-a5ab37cb09e35ada115d092fda18386d762d4359` apontam para os mesmos digests.
+
 ```powershell
 docker login --username gabrielgventura
 docker build --platform linux/amd64 -f images/clean-image/Dockerfile -t gabrielgventura/sis-questionario:clean .
