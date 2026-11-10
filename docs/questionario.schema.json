@@ -31,9 +31,16 @@
       "type": "boolean"
     },
     "algoritmo": {
-      "enum": [
-        null,
-        "perfil_v1"
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "\\S"
+        }
       ]
     },
     "exibir_resultado": {
@@ -85,7 +92,10 @@
       "then": {
         "properties": {
           "algoritmo": {
-            "const": "perfil_v1"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "\\S"
           }
         }
       }

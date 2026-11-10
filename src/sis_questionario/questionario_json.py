@@ -2,7 +2,7 @@
 import json
 import re
 
-from .perfis import REGRAS, VERSAO, VERSAO_ANTERIOR
+from .perfis import VERSAO, VERSAO_ANTERIOR
 
 MAX_BYTES = 1024 * 1024
 
@@ -30,8 +30,8 @@ def validar(documento):
         raise ValueError('titulo deve ter entre 1 e 300 caracteres.')
     if type(documento['ativo']) is not bool or type(documento['exibir_resultado']) is not bool:
         raise ValueError('ativo e exibir_resultado devem ser booleanos.')
-    if documento['algoritmo'] not in (None, VERSAO):
-        raise ValueError('Algoritmo não suportado.')
+    if documento['algoritmo'] is not None and not texto(documento['algoritmo'], 80):
+        raise ValueError('algoritmo deve ser null ou um identificador de 1 a 80 caracteres.')
     if documento['exibir_resultado'] and documento['algoritmo'] is None:
         raise ValueError('Devolutiva exige um algoritmo configurado.')
     perguntas = documento['perguntas']
@@ -49,15 +49,14 @@ def validar(documento):
                 any(not texto(opcao, 500) for opcao in opcoes) or
                 len({opcao.strip() for opcao in opcoes}) != len(opcoes)):
             raise ValueError(f'Pergunta {numero}: informe de 2 a 100 alternativas distintas, com até 500 caracteres.')
-    if documento['algoritmo'] == VERSAO:
-        esperado = {q['title']: set(q['options']) for q in REGRAS['questions']}
-        recebido = {q['enunciado']: set(q['opcoes']) for q in perguntas}
-        if recebido != esperado:
-            raise ValueError('O algoritmo perfil_v1 exige exatamente as perguntas e alternativas do Questionário de Perfil.')
     return documento
 
 
 def ler_arquivo(conteudo):
+    return validar(carregar_json(conteudo))
+
+
+def carregar_json(conteudo):
     if len(conteudo) > MAX_BYTES:
         raise ValueError('O arquivo deve ter no máximo 1 MiB.')
     def objeto(pares):
@@ -71,5 +70,5 @@ def ler_arquivo(conteudo):
         documento = json.loads(conteudo.decode('utf-8-sig'), object_pairs_hook=objeto,
                                parse_constant=lambda value: (_ for _ in ()).throw(ValueError('Número JSON inválido.')))
     except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as error:
-        raise ValueError('Arquivo inválido. Use JSON em UTF-8 no formato de questionário v1.') from error
-    return validar(documento)
+        raise ValueError('Arquivo inválido. Use JSON em UTF-8.') from error
+    return documento

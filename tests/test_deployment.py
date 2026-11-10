@@ -1,3 +1,5 @@
+from fastapi.testclient import TestClient
+from http_helpers import session_transaction
 import os
 import re
 import tempfile
@@ -14,6 +16,8 @@ from psycopg.conninfo import conninfo_to_dict
 
 from sis_questionario import bd_exec as db
 from sis_questionario.app import create_app
+from sis_questionario.bd_async import AsyncDatabase
+from sis_questionario.server import loop_factory
 from sis_questionario.config import conexao_banco
 from sis_questionario.provision import preparar_senha, provisionar, TABLES
 
@@ -45,19 +49,19 @@ class DeploymentConfigurationTest(unittest.TestCase):
         with patch.dict(os.environ, {'ADMIN_PASSWORD': 'deployment-test-password',
                                    'ADMIN_PASSWORD_HASH': '', 'COOKIE_SECURE': '1',
                                    'TRUST_PROXY': '1'}):
-            client = create_app().test_client()
+            client = TestClient(create_app(), follow_redirects=False, base_url='https://testserver')
             page = client.get('/admin/login', headers={'X-Forwarded-Proto': 'https'})
-            self.assertTrue(all('Secure' in c for c in page.headers.getlist('Set-Cookie')))
-            token = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)[1].decode()
+            self.assertTrue(all('secure' in c.lower() for c in page.headers.get_list('Set-Cookie')))
+            token = re.search(rb'name="csrf_token" value="([^"]+)"', page.content)[1].decode()
             response = client.post('/admin/login', data={'csrf_token': token,
                                                        'password': 'deployment-test-password'})
             self.assertEqual(response.status_code, 302)
 
     def test_health_does_not_expose_database_failure(self):
-        with patch.object(db, 'conectar', side_effect=psycopg.OperationalError('private details')):
-            response = create_app().test_client().get('/healthz')
+        with patch.object(AsyncDatabase, 'check_health', side_effect=psycopg.OperationalError('private details')):
+            response = TestClient(create_app(), follow_redirects=False, base_url='https://testserver').get('/healthz')
         self.assertEqual(response.status_code, 503)
-        self.assertEqual(response.json, {'status': 'unavailable'})
+        self.assertEqual(response.json(), {'status': 'unavailable'})
 
 
 @unittest.skipUnless(os.environ.get('TEST_DATABASE_URL'), 'Configure TEST_DATABASE_URL.')
@@ -104,7 +108,7 @@ class ProvisionDatabaseTest(unittest.TestCase):
         self.assertEqual(self.count('opcoes'), 120)
         self.assertTrue(all(self.count(t) == 0 for t in ('alunos', 'envios', 'respostas')))
         quiz = db.carregar_questionario(db.listar_questionarios()[0]['id_questionario'])
-        client = create_app().test_client()
+        client = self.enterContext(TestClient(create_app(), follow_redirects=False, base_url='https://testserver', backend_options={'loop_factory': loop_factory}))
         self.assertEqual(client.get('/healthz').status_code, 200)
         self.assertEqual(client.get('/').status_code, 200)
         malicious = "Aluno'); DROP TABLE alunos; --"
@@ -112,7 +116,7 @@ class ProvisionDatabaseTest(unittest.TestCase):
                                                     'questionario_id': quiz['id_questionario']})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(client.get('/pesquisa-perguntas').status_code, 200)
-        with client.session_transaction() as session:
+        with session_transaction(client) as session:
             token = session['token_formulario']
         answers = {'pergunta_' + str(p['id_pergunta']): str(p['opcoes'][0]['id_opcao']) for p in quiz['perguntas']}
         answers['token_formulario'] = token
@@ -121,10 +125,10 @@ class ProvisionDatabaseTest(unittest.TestCase):
         provisionar()
         self.assertEqual(self.count('envios'), 1)
         with db.conectar() as conn:
-            self.assertEqual(conn.execute('SELECT nome FROM alunos').fetchone()['nome'], malicious)
+            self.assertEqual(conn.execute('SELECT nome FROM alunos').fetchone()['nome'], malicious.title())
         # Fluxo administrativo também deve funcionar com a conta restrita.
         page = client.get('/admin/login')
-        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.data)[1].decode()
+        csrf = re.search(rb'name="csrf_token" value="([^"]+)"', page.content)[1].decode()
         self.assertEqual(client.post('/admin/login', data={'csrf_token': csrf, 'password': 'test-admin-password'}).status_code, 302)
         self.assertEqual(client.get('/admin/analise').status_code, 200)
         db.configurar_devolutiva(quiz['id_questionario'], False)

@@ -9,25 +9,28 @@ VERSAO = REGRAS['version']
 VERSAO_ANTERIOR = bytes.fromhex('70657266696c5f736573695f7631').decode('ascii')
 
 
-def concluir(pontos, fortes):
-    candidatos = [p for p in PERFIS if pontos[p] == max(pontos.values())]
+def concluir(pontos, fortes, regras=None):
+    regras = REGRAS if regras is None else regras
+    candidatos = [p for p in regras['profiles'] if pontos[p] == max(pontos.values())]
     maior = max(fortes[p] for p in candidatos)
     vencedores = [p for p in candidatos if fortes[p] == maior]
-    return dict(version=VERSAO, scores=pontos, strong=fortes, winners=vencedores,
+    return dict(version=regras['version'], scores=pontos, strong=fortes, winners=vencedores,
                 category=vencedores[0] if len(vencedores) == 1 else 'misto')
 
 
-def classificar(respostas):
+def classificar(respostas, regras=None):
     """respostas maps question text to the selected option text, never DB IDs."""
-    if set(respostas) != {q['title'] for q in REGRAS['questions']}:
+    regras = REGRAS if regras is None else regras
+    perfis = regras['profiles']
+    if set(respostas) != {q['title'] for q in regras['questions']}:
         raise ValueError('As perguntas não correspondem à versão do classificador de perfil.')
-    pontos = dict.fromkeys(PERFIS, 0)
-    fortes = dict.fromkeys(PERFIS, 0)
-    for pergunta in REGRAS['questions']:
+    pontos = dict.fromkeys(perfis, 0)
+    fortes = dict.fromkeys(perfis, 0)
+    for pergunta in regras['questions']:
         regra = pergunta['options'].get(respostas[pergunta['title']])
         if regra is None:
             raise ValueError('Alternativa sem regra de classificação.')
-        for perfil in PERFIS:
+        for perfil in perfis:
             pontos[perfil] += regra['add'][perfil] + regra['subtract'][perfil]
             fortes[perfil] += regra['add'][perfil] == 20
-    return concluir(pontos, fortes)
+    return concluir(pontos, fortes, regras)

@@ -1,8 +1,8 @@
 <nav class="admin-navigation" aria-label="Navegação administrativa">
   <div class="admin-navigation-links">
-    <a href="{{ url_for('admin.dashboard') }}" {% if request.endpoint == 'admin.dashboard' %}aria-current="page"{% endif %}>Início</a>
-    <a href="{{ url_for('admin.analysis') }}" {% if request.endpoint == 'admin.analysis' %}aria-current="page"{% endif %}>Análise de respostas</a>
-    <a href="{{ url_for('admin.questionnaires') }}" {% if request.endpoint == 'admin.questionnaires' %}aria-current="page"{% endif %}>Gerenciar questionários</a>
+    <a href="{{ url_for('admin.dashboard') }}" {% if request.scope.get('route').name in ('admin.dashboard', 'admin.dashboard_alias') %}aria-current="page"{% endif %}>Início</a>
+    <a href="{{ url_for('admin.analysis') }}" {% if request.scope.get('route').name == 'admin.analysis' %}aria-current="page"{% endif %}>Análise de respostas</a>
+    <a href="{{ url_for('admin.questionnaires') }}" {% if request.scope.get('route').name == 'admin.questionnaires' %}aria-current="page"{% endif %}>Gerenciar questionários</a>
   </div>
   <form method="post" action="{{ url_for('admin.logout') }}"><input type="hidden" name="csrf_token" value="{{ token }}"><button class="admin-button" type="submit">Sair</button></form>
 </nav>

@@ -1,6 +1,8 @@
 # Sistema de questionário
 
-Aplicação com Flask, PostgreSQL/Psycopg, Tailwind CSS e painel de análise integrado.
+> A execução local usa FastAPI, Uvicorn e pool assíncrono do Psycopg 3. Os containers ainda aguardam adaptação para ASGI. Consulte [o escopo e a validação da migração](docs/fastapi-migration.md).
+
+Aplicação com FastAPI, PostgreSQL/Psycopg, Tailwind CSS e painel de análise integrado.
 Permite cadastrar participantes, escolher questionários e responder todas as
 perguntas em um único formulário. Cada navegador pode enviar uma vez por questionário.
 
@@ -62,7 +64,7 @@ O usuário do setup precisa poder criar o banco e suas tabelas.
 O setup não cria usuários; `DB_USER` deve existir no servidor.
 
 Somente `sis-questionario-perfil` cadastra o Perfil usando `SELECT` e `INSERT`.
-Criar a aplicação Flask diretamente não prepara nem popula o banco. Em uma
+Criar a aplicação FastAPI diretamente não prepara nem popula o banco. Em uma
 hospedagem com conta restrita, execute a preparação como administrador antes
 de servir a aplicação com `sis_questionario.app:create_app`. Conceda `CONNECT` no banco,
 `USAGE` no schema `public` e nas sequências, e `SELECT` e `INSERT` nas seis tabelas.
@@ -92,6 +94,10 @@ com estrutura salva em `questionarios.documento` (JSONB). Há um
 [JSON Schema](docs/questionario.schema.json). A importação não sobrescreve códigos
 existentes; para importar uma cópia, altere o código no arquivo. Execute
 `uv run sis-questionario-db` para migrar os questionários existentes antes de usar.
+Se `algoritmo` estiver preenchido, selecione também o JSON de regras solicitado
+pelo formulário. Use [perfil.template.json](docs/perfil.template.json) como modelo.
+O servidor valida e salva os dois arquivos na mesma transação; **Exportar algoritmo**
+permite baixar as regras para reutilizá-las em uma nova importação.
 A exclusão continua apenas como prévia. Sua janela informa que a futura ação
 também removerá os envios e as respostas associados.
 
@@ -189,8 +195,11 @@ em **Perfil misto**. Envios sem resultado salvo aparecem em **Sem classificaçã
 o aplicativo não os recalcula automaticamente. O script de exemplos agora inclui
 a classificação e pode preencher resultados ausentes dos seus próprios envios.
 
-Os pesos estão em `src/sis_questionario/perfil_v1.json`, associados aos
-textos das perguntas e alternativas, sem depender dos IDs do banco. A referência
+Os pesos do Perfil original estão em `src/sis_questionario/perfil_v1.json`.
+Questionários importados usam seu próprio arquivo de algoritmo, salvo em
+`questionarios.regras_algoritmo`, inclusive quando se chama `perfil_v1`.
+Pesos e nomes dos perfis são associados aos textos das perguntas e alternativas,
+sem depender dos IDs do banco. A referência
 original está em [perfil-regras-originais.md](docs/perfil-regras-originais.md).
 Interpretações adotadas: Educação dá +10 a Tecnológicos, +20 aos demais exceto
 Otakus; comida dá +5 a todos, e Prato popular soma mais +10 a Tecnológicos.
@@ -206,7 +215,7 @@ funcionando apenas com `SELECT` e `INSERT`, além das permissões de sequências
 
 ```text
 src/sis_questionario/
-    app.py              # Rotas e criação do Flask
+    app.py              # Rotas e criação do FastAPI
     bd_exec.py          # Consultas e gravação transacional
     config.py          # Leitura do .env
     setup_db.py        # Execução do SQL pelo administrador
@@ -248,7 +257,7 @@ questionário, um administrador pode atualizar sua coluna `ativo`.
 
 Um cookie aleatório, com validade de um ano, identifica o navegador. O banco
 impede repetir o mesmo identificador no mesmo questionário. Esse identificador
-é separado da sessão Flask e permanece após reiniciar o app.
+é separado da sessão assinada e permanece após reiniciar o app.
 Limpar cookies, trocar de navegador ou usar uma nova sessão anônima permite
 outro identificador. Isso não identifica o dispositivo físico nem autentica o aluno.
 Envios anteriores ao recurso permanecem com identificador vazio.
@@ -275,10 +284,9 @@ Durante a edição, use `npm run watch:css`. O fluxo usa o
 
 ## Testes
 
-O Gunicorn usa gevent e um pool PostgreSQL por worker. O número padrão de workers
-é `max(1, floor(CPUs efetivas + 1))`, considerando afinidade e quotas do contêiner.
-Consulte [concorrência e pools](docs/docker-render.md#concorrência-e-pools)
-para limites, variáveis e configuração do Render Free.
+O servidor local usa Uvicorn, com um worker por padrão e um pool PostgreSQL
+assíncrono por worker. Consulte [execução e pools](docs/fastapi-migration.md)
+para configuração, compatibilidade com Windows e escopo dos containers legados.
 
 Os testes usam um administrador em uma conexão separada para criar schemas e
 roles temporárias, revertidos ao final. Os testes verificam também uma conta restrita.

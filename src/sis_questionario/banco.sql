@@ -53,6 +53,8 @@ CREATE TABLE IF NOT EXISTS respostas (
 );
 -- A configuração da devolutiva é independente do algoritmo usado nos envios.
 ALTER TABLE questionarios ADD COLUMN IF NOT EXISTS algoritmo TEXT;
+-- Scoring rules belong to the questionnaire and are saved atomically on import.
+ALTER TABLE questionarios ADD COLUMN IF NOT EXISTS regras_algoritmo JSONB;
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns

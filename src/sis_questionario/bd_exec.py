@@ -8,7 +8,8 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from .config import carregar_configuracao, conexao_banco
-from .perfis import CATEGORIAS, VERSAO, classificar
+from .algoritmo_json import categorias, regras_importacao, regras_salvas
+from .bd_rules import documento_questionario, resultado_envio
 from .questionario_json import validar
 from .database_pool import obter_pool
 
@@ -25,19 +26,17 @@ class QuestionarioExistente(ValueError):
     pass
 
 
-def cadastrar_questionario(codigo, titulo, perguntas, *, documento=None, estrito=False):
+def cadastrar_questionario(codigo, titulo, perguntas, *, documento=None, estrito=False, regras=None):
     """Cadastra uma vez por código. Reiniciar não altera perguntas já cadastradas."""
-    documento = validar(documento if documento is not None else dict(
-        schema_version=1, codigo=codigo, titulo=titulo, ativo=True,
-        algoritmo=VERSAO if codigo == 'perfil' else None, exibir_resultado=codigo == 'perfil',
-        perguntas=[dict(enunciado=p['pergunta'], opcoes=p['opcoes']) for p in perguntas]))
+    documento = documento_questionario(codigo, titulo, perguntas, documento)
+    regras = regras_importacao(documento, regras, legado=not estrito)
     with conectar() as conn:
         questionario = conn.execute(
-            '''INSERT INTO questionarios (codigo, titulo, ativo, algoritmo, exibir_resultado, documento)
-               VALUES (%s, %s, %s, %s, %s, %s)
+            '''INSERT INTO questionarios (codigo, titulo, ativo, algoritmo, exibir_resultado, documento, regras_algoritmo)
+               VALUES (%s, %s, %s, %s, %s, %s, %s)
                ON CONFLICT (codigo) DO NOTHING RETURNING id_questionario''',
             (documento['codigo'], documento['titulo'], documento['ativo'], documento['algoritmo'],
-             documento['exibir_resultado'], Jsonb(documento)),
+             documento['exibir_resultado'], Jsonb(documento), Jsonb(regras) if regras else None),
         ).fetchone()
         if not questionario:
             if estrito:
@@ -60,9 +59,9 @@ def cadastrar_questionario(codigo, titulo, perguntas, *, documento=None, estrito
         return id_questionario
 
 
-def importar_questionario(documento):
+def importar_questionario(documento, regras=None):
     documento = validar(documento)
-    return cadastrar_questionario(documento['codigo'], documento['titulo'], [], documento=documento, estrito=True)
+    return cadastrar_questionario(documento['codigo'], documento['titulo'], [], documento=documento, estrito=True, regras=regras)
 
 
 def exportar_questionario(id_questionario):
@@ -83,6 +82,13 @@ def inicializar_banco():
     cadastrar_questionario('perfil', 'Questionário de perfil', perguntas)
 
 
+def exportar_algoritmo(id_questionario):
+    with conectar() as conn:
+        row = conn.execute('SELECT algoritmo, regras_algoritmo FROM questionarios WHERE id_questionario = %s',
+                           (id_questionario,)).fetchone()
+        return regras_salvas(row) if row else None
+
+
 def listar_questionarios():
     with conectar() as conn:
         return conn.execute('SELECT * FROM questionarios WHERE ativo ORDER BY titulo, id_questionario').fetchall()
@@ -98,12 +104,13 @@ def resultados_questionario(id_questionario, filtros, perfis=None):
     with conectar() as conn:
         # All charts and totals must describe the same database snapshot.
         conn.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
-        quiz = conn.execute('SELECT titulo, algoritmo, exibir_resultado FROM questionarios WHERE id_questionario = %s',
+        quiz = conn.execute('SELECT titulo, algoritmo, exibir_resultado, regras_algoritmo FROM questionarios WHERE id_questionario = %s',
                             (id_questionario,)).fetchone()
         if not quiz:
             return None
         perfis = [] if perfis is None else perfis
-        if (not isinstance(perfis, list) or any(not isinstance(p, str) or p not in CATEGORIAS for p in perfis)
+        categorias_disponiveis = categorias(quiz)
+        if (not isinstance(perfis, list) or any(not isinstance(p, str) or p not in categorias_disponiveis for p in perfis)
                 or (perfis and not quiz['algoritmo'])):
             raise ValueError('Filtro de perfil inválido.')
         perguntas = conn.execute('SELECT id_pergunta, enunciado FROM perguntas '
@@ -163,7 +170,7 @@ def resultados_questionario(id_questionario, filtros, perfis=None):
             counts = {row['categoria']: row['n'] for row in rows}
             charts.insert(0, dict(id='profiles', title='Perfis dos participantes', base=matching,
                 options=[dict(id=key, label=label, count=counts.get(key, 0), selected=key in perfis)
-                         for key, label in CATEGORIAS.items()]))
+                         for key, label in categorias_disponiveis.items()]))
         return dict(title=quiz['titulo'], total=total, matching=matching, charts=charts,
                     algorithm=quiz['algoritmo'], show_result=quiz['exibir_resultado'])
 
@@ -222,7 +229,7 @@ def registrar_envio(id_aluno, id_questionario, respostas, id_dispositivo):
     id_dispositivo = UUID(str(id_dispositivo))
     with conectar() as conn:
         questionario = conn.execute(
-            'SELECT id_questionario, algoritmo FROM questionarios WHERE id_questionario = %s AND ativo',
+            'SELECT id_questionario, algoritmo, regras_algoritmo FROM questionarios WHERE id_questionario = %s AND ativo',
             (id_questionario,),
         ).fetchone()
         if not questionario:
@@ -232,17 +239,7 @@ def registrar_envio(id_aluno, id_questionario, respostas, id_dispositivo):
                JOIN opcoes o ON o.id_pergunta = p.id_pergunta WHERE p.id_questionario = %s''',
             (id_questionario,),
         ).fetchall()
-        pares = {(r['id_pergunta'], r['id_opcao']) for r in permitidas}
-        perguntas = {p for p, _ in pares}
-        if not perguntas or set(respostas) != perguntas or any((p, o) not in pares for p, o in respostas.items()):
-            raise ValueError('Selecione uma opção válida para cada pergunta.')
-        resultado = None
-        if questionario['algoritmo']:
-            if questionario['algoritmo'] != VERSAO:
-                raise ValueError('Algoritmo de classificação indisponível.')
-            selecionadas = {r['enunciado']: r['texto'] for r in permitidas
-                            if respostas[r['id_pergunta']] == r['id_opcao']}
-            resultado = classificar(selecionadas)
+        resultado = resultado_envio(questionario, permitidas, respostas)
         envio = conn.execute(
             '''INSERT INTO envios (id_aluno, id_questionario, id_dispositivo, resultado)
                VALUES (%s, %s, %s, %s)
@@ -262,11 +259,11 @@ def registrar_envio(id_aluno, id_questionario, respostas, id_dispositivo):
 
 def carregar_resultado(id_envio, id_dispositivo):
     with conectar() as conn:
-        row = conn.execute('''SELECT e.resultado FROM envios e
+        row = conn.execute('''SELECT e.resultado, q.algoritmo, q.regras_algoritmo FROM envios e
             JOIN questionarios q USING (id_questionario)
             WHERE e.id_envio = %s AND e.id_dispositivo = %s AND q.exibir_resultado''',
             (id_envio, id_dispositivo)).fetchone()
-        return row['resultado'] if row else None
+        return {**row['resultado'], 'profiles': regras_salvas(row)['profiles']} if row and row['resultado'] else None
 
 
 def configurar_devolutiva(id_questionario, habilitada):

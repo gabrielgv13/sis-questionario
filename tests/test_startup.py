@@ -18,19 +18,18 @@ from sis_questionario.questionario_json import validar
 
 class StartupUnitTest(unittest.TestCase):
     def test_default_prepares_database_without_loading_profile(self):
-        with patch('sis_questionario.setup_db.main') as prepare, patch.object(db, 'inicializar_banco') as seed, patch('sis_questionario.app.create_app') as create:
+        with patch('sis_questionario.setup_db.main') as prepare, patch.object(db, 'inicializar_banco') as seed, patch('sis_questionario.server.serve') as serve:
             main()
             prepare.assert_called_once_with()
             seed.assert_not_called()
-            create.assert_called_once_with()
-            create.return_value.run.assert_called_once_with(host='127.0.0.1', port=5000)
+            serve.assert_called_once_with()
 
     def test_profile_prepares_before_loading_and_serving(self):
         actions = []
-        with patch('sis_questionario.setup_db.main', side_effect=lambda: actions.append('prepare')), patch.object(db, 'inicializar_banco', side_effect=lambda: actions.append('profile')), patch('sis_questionario.app.create_app') as create:
-            create.side_effect = lambda: actions.append('app') or unittest.mock.Mock()
+        with patch('sis_questionario.setup_db.main', side_effect=lambda: actions.append('prepare')), patch.object(db, 'inicializar_banco', side_effect=lambda: actions.append('profile')), patch('sis_questionario.server.serve') as serve:
+            serve.side_effect = lambda: actions.append('serve')
             main_perfil()
-        self.assertEqual(actions, ['prepare', 'profile', 'app'])
+        self.assertEqual(actions, ['prepare', 'profile', 'serve'])
 
     def test_previous_json_identifier_is_normalized(self):
         path = Path(__file__).resolve().parents[1] / 'docs/questionario_perfil.json'
@@ -63,7 +62,7 @@ class StartupDatabaseTest(unittest.TestCase):
         prepare = patch('sis_questionario.setup_db.main', side_effect=lambda: self.conn.execute(self.structure))
         prepare.start()
         self.addCleanup(prepare.stop)
-        serve = patch('flask.Flask.run')
+        serve = patch('sis_questionario.server.serve')
         serve.start()
         self.addCleanup(serve.stop)
 

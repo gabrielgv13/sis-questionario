@@ -1,122 +1,173 @@
 """Authenticated, aggregate-only reporting interface."""
 import json
+import re
 import secrets
 from functools import wraps
 
-from flask import Blueprint, abort, jsonify, redirect, render_template, request, session, url_for, Response, current_app
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import JSONResponse, Response
+from starlette.concurrency import run_in_threadpool
+from starlette.datastructures import UploadFile
+from .web import abort, redirect, render_template, read_json
 from werkzeug.security import check_password_hash
 
-from . import bd_exec as db
+from .bd_async import AsyncDatabase
+from .bd_exec import QuestionarioExistente
+from .async_pool import get_database
 
-admin = Blueprint('admin', __name__, url_prefix='/admin')
+admin = APIRouter(prefix='/admin')
 
 
 def protected(view):
     @wraps(view)
-    def wrapped(*args, **kwargs):
-        if not session.get('admin_authenticated'):
-            if request.path.startswith('/admin/api/'):
+    async def wrapped(request: Request, *args, **kwargs):
+        if not request.session.get('admin_authenticated'):
+            if request.url.path.startswith('/admin/api/'):
                 abort(401)
-            return redirect(url_for('admin.login'))
-        return view(*args, **kwargs)
+            return redirect(request, 'admin.login')
+        return await view(request, *args, **kwargs)
     return wrapped
 
 
-def csrf_token():
-    if 'admin_csrf' not in session:
-        session['admin_csrf'] = secrets.token_urlsafe(32)
-    return session['admin_csrf']
+def csrf_token(request: Request):
+    if 'admin_csrf' not in request.session:
+        request.session['admin_csrf'] = secrets.token_urlsafe(32)
+    return request.session['admin_csrf']
 
 
-def check_csrf(value):
-    if not value or not secrets.compare_digest(value, session.get('admin_csrf', '')):
+def check_csrf(request: Request, value):
+    if not isinstance(value, str) or not value or not secrets.compare_digest(value, request.session.get('admin_csrf', '')):
         abort(400, description='Atualize a página e tente novamente.')
 
 
-@admin.route('/login', methods=['GET', 'POST'])
-def login():
-    password_hash = current_app.config.get('ADMIN_PASSWORD_HASH')
+@admin.get('/login', name='admin.login')
+@admin.head('/login', include_in_schema=False)
+@admin.post('/login', name='admin.login_submit')
+async def login(request: Request):
+    password_hash = request.app.state.settings.get('ADMIN_PASSWORD_HASH')
     if not password_hash:
-        return render_template('admin_login.html', token=csrf_token(),
-                               error='Acesso administrativo ainda não configurado.'), 503
+        return await render_template(request, 'admin_login.html', token=csrf_token(request),
+                               error='Acesso administrativo ainda não configurado.', status_code=503)
     error = None
     if request.method == 'POST':
-        check_csrf(request.form.get('csrf_token'))
-        if check_password_hash(password_hash, request.form.get('password', '')):
-            session.clear()
-            session['admin_authenticated'] = True
-            csrf_token()
-            return redirect(url_for('admin.dashboard'))
+        form = await request.form()
+        check_csrf(request, form.get('csrf_token'))
+        password = form.get('password', '')
+        if isinstance(password, str) and await run_in_threadpool(check_password_hash, password_hash, password):
+            request.session.clear()
+            request.session['admin_authenticated'] = True
+            csrf_token(request)
+            return redirect(request, 'admin.dashboard')
         error = 'Senha inválida.'
-    return render_template('admin_login.html', token=csrf_token(), error=error)
+    return await render_template(request, 'admin_login.html', token=csrf_token(request), error=error)
 
 
-@admin.post('/logout')
+@admin.post('/logout', name='admin.logout')
 @protected
-def logout():
-    check_csrf(request.form.get('csrf_token'))
-    session.clear()
-    return redirect(url_for('admin.login'))
+async def logout(request: Request):
+    form = await request.form()
+    check_csrf(request, form.get('csrf_token'))
+    request.session.clear()
+    return redirect(request, 'admin.login')
 
 
-@admin.get('')
-@admin.get('/')
+@admin.get('', name='admin.dashboard_alias')
+@admin.head('', include_in_schema=False)
+@admin.get('/', name='admin.dashboard')
+@admin.head('/', include_in_schema=False)
 @protected
-def dashboard():
-    return render_template('admin_home.html', token=csrf_token())
+async def dashboard(request: Request):
+    return await render_template(request, 'admin_home.html', token=csrf_token(request))
 
 
-@admin.get('/analise')
+@admin.get('/analise', name='admin.analysis')
+@admin.head('/analise', include_in_schema=False)
 @protected
-def analysis():
-    return render_template('admin.html', questionarios=db.listar_questionarios_admin(), token=csrf_token())
+async def analysis(request: Request, db: AsyncDatabase = Depends(get_database)):
+    return await render_template(request, 'admin.html', questionarios=await db.listar_questionarios_admin(), token=csrf_token(request))
 
 
-@admin.get('/questionarios')
+@admin.get('/questionarios', name='admin.questionnaires')
+@admin.head('/questionarios', include_in_schema=False)
 @protected
-def questionnaires():
-    return render_template('admin_questionarios.html', questionarios=db.listar_questionarios_admin(), token=csrf_token())
+async def questionnaires(request: Request, db: AsyncDatabase = Depends(get_database)):
+    return await render_template(request, 'admin_questionarios.html', questionarios=await db.listar_questionarios_admin(), token=csrf_token(request))
 
 
-@admin.post('/api/questionnaires/import')
+@admin.post('/api/questionnaires/import', name='admin.import_questionnaire')
 @protected
-def import_questionnaire():
+async def import_questionnaire(request: Request, db: AsyncDatabase = Depends(get_database)):
     from .questionario_json import MAX_BYTES, ler_arquivo
-    check_csrf(request.headers.get('X-CSRF-Token'))
-    # Bound multipart parsing as well as the uploaded JSON itself.
-    request.max_content_length = MAX_BYTES + 65536
-    upload = request.files.get('file')
-    if upload is None or not upload.filename or not upload.filename.lower().endswith('.json'):
-        return jsonify(error='Selecione um arquivo .json.'), 400
+    from .algoritmo_json import ler_arquivo as ler_algoritmo, regras_importacao
+    check_csrf(request, request.headers.get('X-CSRF-Token'))
+    # Bound the complete multipart body, including requests without Content-Length.
+    limit = 2 * MAX_BYTES + 65536
+    body = bytearray()
+    async for chunk in request.stream():
+        body.extend(chunk)
+        if len(body) > limit:
+            abort(413)
+    request._body = bytes(body)
+    async with request.form(max_files=2, max_fields=10, max_part_size=limit) as form:
+        upload = form.get('file')
+        if not isinstance(upload, UploadFile) or not upload.filename or not upload.filename.lower().endswith('.json'):
+            return JSONResponse({'error': 'Selecione um arquivo .json.'}, status_code=400)
+        raw = await upload.read(MAX_BYTES + 1)
+        algorithm = form.get('algorithm')
+        algorithm_raw = None
+        if algorithm is not None:
+            if not isinstance(algorithm, UploadFile) or not algorithm.filename or not algorithm.filename.lower().endswith('.json'):
+                return JSONResponse({'error': 'Selecione um arquivo .json para o algoritmo.'}, status_code=400)
+            algorithm_raw = await algorithm.read(MAX_BYTES + 1)
+        if len(form.getlist('file')) != 1 or len(form.getlist('algorithm')) > 1:
+            return JSONResponse({'error': 'Envie apenas um questionário e um algoritmo.'}, status_code=400)
     try:
-        documento = ler_arquivo(upload.stream.read(MAX_BYTES + 1))
-        identifier = db.importar_questionario(documento)
-    except db.QuestionarioExistente as error:
-        return jsonify(error=str(error)), 409
+        documento = await run_in_threadpool(ler_arquivo, raw)
+        regras = await run_in_threadpool(ler_algoritmo, algorithm_raw, documento) if algorithm_raw is not None else None
+        regras = await run_in_threadpool(regras_importacao, documento, regras)
+        identifier = await db.importar_questionario(documento, regras) if regras is not None else await db.importar_questionario(documento)
+    except QuestionarioExistente as error:
+        return JSONResponse({'error': str(error)}, status_code=409)
     except ValueError as error:
-        return jsonify(error=str(error)), 400
-    return jsonify(id=identifier, title=documento['titulo']), 201
+        return JSONResponse({'error': str(error)}, status_code=400)
+    return JSONResponse({'id': identifier, 'title': documento['titulo']}, status_code=201)
 
 
-@admin.get('/api/questionnaires/<int:identifier>/export')
+@admin.get('/api/questionnaires/{identifier:int}/export', name='admin.export_questionnaire')
+@admin.head('/api/questionnaires/{identifier:int}/export', include_in_schema=False)
 @protected
-def export_questionnaire(identifier):
+async def export_questionnaire(request: Request, identifier: int, db: AsyncDatabase = Depends(get_database)):
     try:
-        documento = db.exportar_questionario(identifier)
+        documento = await db.exportar_questionario(identifier)
     except ValueError as error:
-        return jsonify(error=str(error)), 400
+        return JSONResponse({'error': str(error)}, status_code=400)
     if documento is None:
         abort(404)
     return Response(json.dumps(documento, ensure_ascii=False, indent=2),
-                    content_type='application/json; charset=utf-8', headers={
+                    media_type='application/json; charset=utf-8', headers={
                         'Content-Disposition': f'attachment; filename="questionario-{identifier}.json"'})
 
 
-@admin.post('/api/results')
+@admin.get('/api/questionnaires/{identifier:int}/algorithm', name='admin.export_algorithm')
+@admin.head('/api/questionnaires/{identifier:int}/algorithm', include_in_schema=False)
 @protected
-def results():
-    check_csrf(request.headers.get('X-CSRF-Token'))
-    data = request.get_json()
+async def export_algorithm(request: Request, identifier: int, db: AsyncDatabase = Depends(get_database)):
+    try:
+        regras = await db.exportar_algoritmo(identifier)
+    except ValueError as error:
+        return JSONResponse({'error': str(error)}, status_code=400)
+    if regras is None:
+        abort(404)
+    filename = re.sub(r'[^a-zA-Z0-9_-]', '_', regras['version']) or f'algoritmo-{identifier}'
+    return Response(json.dumps(regras, ensure_ascii=False, indent=2), media_type='application/json',
+                    headers={'Content-Disposition': f'attachment; filename="{filename}.json"'})
+
+
+@admin.post('/api/results', name='admin.results')
+@protected
+async def results(request: Request, db: AsyncDatabase = Depends(get_database)):
+    check_csrf(request, request.headers.get('X-CSRF-Token'))
+    data = await read_json(request)
     if not isinstance(data, dict) or type(data.get('quiz_id')) is not int:
         abort(400, description='Questionário inválido.')
     filters = data.get('filters', {})
@@ -124,51 +175,44 @@ def results():
         abort(400, description='Filtros inválidos.')
     try:
         if 'profiles' in data:
-            result = db.resultados_questionario(data['quiz_id'], filters, data['profiles'])
+            result = await db.resultados_questionario(data['quiz_id'], filters, data['profiles'])
         else:
-            result = db.resultados_questionario(data['quiz_id'], filters)
+            result = await db.resultados_questionario(data['quiz_id'], filters)
     except ValueError as error:
         abort(400, description=str(error))
     if result is None:
         abort(404)
-    return jsonify(result)
+    return JSONResponse(result)
 
 
-@admin.post('/api/settings')
+@admin.post('/api/settings', name='admin.settings')
 @protected
-def settings():
-    check_csrf(request.headers.get('X-CSRF-Token'))
-    data = request.get_json()
+async def settings(request: Request, db: AsyncDatabase = Depends(get_database)):
+    check_csrf(request, request.headers.get('X-CSRF-Token'))
+    data = await read_json(request)
     if (not isinstance(data, dict) or type(data.get('quiz_id')) is not int
             or type(data.get('show_result')) is not bool):
         abort(400, description='Configuração inválida.')
     try:
-        db.configurar_devolutiva(data['quiz_id'], data['show_result'])
+        await db.configurar_devolutiva(data['quiz_id'], data['show_result'])
     except ValueError as error:
         abort(400, description=str(error))
-    return jsonify(ok=True)
+    return JSONResponse({'ok': True})
 
 
-@admin.after_request
-def private_response(response):
-    response.headers['Cache-Control'] = 'no-store'
-    response.headers['X-Frame-Options'] = 'DENY'
-    return response
-
-
-@admin.post('/api/export')
+@admin.post('/api/export', name='admin.export')
 @protected
-def export():
-    from .exportacao import preparar, gerar_csv, gerar_json, gerar_pdf
-    check_csrf(request.headers.get('X-CSRF-Token'))
-    data = request.get_json()
+async def export(request: Request, db: AsyncDatabase = Depends(get_database)):
+    from .exportacao import preparar_async, gerar_csv, gerar_json, gerar_pdf
+    check_csrf(request, request.headers.get('X-CSRF-Token'))
+    data = await read_json(request)
     try:
-        result = preparar(data)
+        result = await preparar_async(data, db)
     except ValueError as error:
-        return jsonify(error=str(error)), 400
+        return JSONResponse({'error': str(error)}, status_code=400)
     kind = data['format']
     generators = {'pdf': (gerar_pdf, 'application/pdf'), 'csv': (gerar_csv, 'text/csv; charset=utf-8'),
                   'json': (gerar_json, 'application/json; charset=utf-8')}
     generate, content_type = generators[kind]
-    return Response(generate(result), content_type=content_type, headers={
+    return Response(await run_in_threadpool(generate, result), media_type=content_type, headers={
         'Content-Disposition': f'attachment; filename="questionario-{data["quiz_id"]}.{kind}"'})

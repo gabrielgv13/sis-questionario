@@ -1,0 +1,69 @@
+{
+  "version": "substitua-pelo-identificador-do-algoritmo",
+  "profiles": {
+    "perfil_a": "Nome do perfil A",
+    "perfil_b": "Nome do perfil B"
+  },
+  "questions": [
+    {
+      "title": "Substitua pelo enunciado da primeira pergunta.",
+      "options": {
+        "Substitua pela primeira alternativa": {
+          "add": {
+            "perfil_a": 20,
+            "perfil_b": 0
+          },
+          "subtract": {
+            "perfil_a": 0,
+            "perfil_b": -5
+          }
+        },
+        "Substitua pela segunda alternativa": {
+          "add": {
+            "perfil_a": 0,
+            "perfil_b": 20
+          },
+          "subtract": {
+            "perfil_a": -5,
+            "perfil_b": 0
+          }
+        },
+        "Substitua pela terceira alternativa": {
+          "add": {
+            "perfil_a": 0,
+            "perfil_b": 0
+          },
+          "subtract": {
+            "perfil_a": 0,
+            "perfil_b": 0
+          }
+        }
+      }
+    },
+    {
+      "title": "Substitua pelo enunciado da segunda pergunta.",
+      "options": {
+        "Substitua pela primeira alternativa desta pergunta": {
+          "add": {
+            "perfil_a": 20,
+            "perfil_b": 0
+          },
+          "subtract": {
+            "perfil_a": 0,
+            "perfil_b": -5
+          }
+        },
+        "Substitua pela segunda alternativa desta pergunta": {
+          "add": {
+            "perfil_a": 0,
+            "perfil_b": 20
+          },
+          "subtract": {
+            "perfil_a": -5,
+            "perfil_b": 0
+          }
+        }
+      }
+    }
+  ]
+}

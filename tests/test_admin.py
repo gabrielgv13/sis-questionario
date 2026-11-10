@@ -1,3 +1,5 @@
+from fastapi.testclient import TestClient
+from http_helpers import session_transaction
 import os
 import re
 import unittest
@@ -12,6 +14,7 @@ from psycopg.rows import dict_row
 from werkzeug.security import generate_password_hash
 
 from sis_questionario import bd_exec as db
+from sis_questionario.bd_async import AsyncDatabase
 from sis_questionario.app import create_app
 
 
@@ -25,12 +28,11 @@ class AdminAccessTest(unittest.TestCase):
         env.start()
         self.addCleanup(env.stop)
         self.app = create_app(inicializar=False)
-        self.app.testing = True
-        self.client = self.app.test_client()
+        self.client = TestClient(self.app, follow_redirects=False, base_url='https://testserver')
 
     def token(self):
         page = self.client.get('/admin/login')
-        return re.search(rb'name="csrf_token" value="([^"]+)"', page.data)[1].decode()
+        return re.search(rb'name="csrf_token" value="([^"]+)"', page.content)[1].decode()
 
     def login(self):
         return self.client.post('/admin/login', data={
@@ -44,52 +46,52 @@ class AdminAccessTest(unittest.TestCase):
 
     def test_admin_home_navigation_and_management_preview(self):
         response = self.login()
-        self.assertTrue(response.location.endswith('/admin/'))
-        with patch.object(db, 'listar_questionarios_admin') as listing:
+        self.assertTrue(response.headers['location'].endswith('/admin/'))
+        with patch.object(AsyncDatabase, 'listar_questionarios_admin') as listing:
             home = self.client.get('/admin')
             listing.assert_not_called()
-        self.assertIn(b'/admin/analise', home.data)
-        self.assertIn(b'/admin/questionarios', home.data)
+        self.assertIn(b'/admin/analise', home.content)
+        self.assertIn(b'/admin/questionarios', home.content)
         questions = [dict(id_questionario=1, titulo='Perfil <teste>', codigo='perfil', ativo=True,
                           algoritmo='perfil_v1', exibir_resultado=False)]
-        with patch.object(db, 'listar_questionarios_admin', return_value=questions):
+        with patch.object(AsyncDatabase, 'listar_questionarios_admin', return_value=questions):
             analysis = self.client.get('/admin/analise')
             management = self.client.get('/admin/questionarios')
         self.assertEqual(analysis.status_code, 200)
-        self.assertIn(b'id="admin-dashboard"', analysis.data)
+        self.assertIn(b'id="admin-dashboard"', analysis.content)
         self.assertEqual(management.status_code, 200)
-        self.assertIn(b'Perfil &lt;teste&gt;', management.data)
-        self.assertIn(b'id="management-confirm" class="admin-button" type="button" disabled', management.data)
-        self.assertIn(b'data-management-action="import"', management.data)
-        self.assertIn(b'data-management-action="export"', management.data)
-        self.assertIn(b'data-management-action="delete"', management.data)
-        self.assertNotIn(b'id="admin-dashboard"', management.data)
+        self.assertIn(b'Perfil &lt;teste&gt;', management.content)
+        self.assertIn(b'id="management-confirm" class="admin-button" type="button" disabled', management.content)
+        self.assertIn(b'data-management-action="import"', management.content)
+        self.assertIn(b'data-management-action="export"', management.content)
+        self.assertIn(b'data-management-action="delete"', management.content)
+        self.assertNotIn(b'id="admin-dashboard"', management.content)
         self.assertEqual(management.headers['Cache-Control'], 'no-store')
 
     def test_login_requires_configuration_correct_password_and_csrf(self):
         self.assertEqual(self.client.post('/admin/login', data={'password': 'test-admin-password'}).status_code, 400)
         self.client.post('/admin/login', data={'csrf_token': self.token(), 'password': 'wrong'})
-        with self.client.session_transaction() as session:
+        with session_transaction(self.client) as session:
             self.assertFalse(session.get('admin_authenticated'))
-        with patch.dict(self.app.config, {'ADMIN_PASSWORD_HASH': ''}):
+        with patch.dict(self.app.state.settings, {'ADMIN_PASSWORD_HASH': ''}):
             self.assertEqual(self.client.get('/admin/login').status_code, 503)
         self.assertEqual(self.login().status_code, 302)
 
     def test_dashboard_api_validation_and_logout(self):
         self.login()
-        with patch.object(db, 'listar_questionarios_admin', return_value=[]):
+        with patch.object(AsyncDatabase, 'listar_questionarios_admin', return_value=[]):
             page = self.client.get('/admin')
         self.assertEqual(page.status_code, 200)
         self.assertEqual(page.headers['Cache-Control'], 'no-store')
-        with self.client.session_transaction() as session:
+        with session_transaction(self.client) as session:
             token = session['admin_csrf']
         headers = {'X-CSRF-Token': token}
         self.assertEqual(self.client.post('/admin/api/results', json={'quiz_id': 1}).status_code, 400)
         for payload in [[], {'quiz_id': True}, {'quiz_id': 1, 'filters': []}]:
             self.assertEqual(self.client.post('/admin/api/results', json=payload, headers=headers).status_code, 400)
-        with patch.object(db, 'resultados_questionario', return_value={'total': 2, 'charts': []}) as query:
+        with patch.object(AsyncDatabase, 'resultados_questionario', return_value={'total': 2, 'charts': []}) as query:
             response = self.client.post('/admin/api/results', json={'quiz_id': 1}, headers=headers)
-            self.assertEqual(response.json['total'], 2)
+            self.assertEqual(response.json()['total'], 2)
             query.assert_called_once_with(1, {})
         self.assertEqual(self.client.get('/admin/logout').status_code, 405)
         self.assertEqual(self.client.post('/admin/logout', data={'csrf_token': token}).status_code, 302)
@@ -100,16 +102,16 @@ class AdminAccessTest(unittest.TestCase):
         self.client.get('/admin/login')
         self.assertEqual(self.client.post('/admin/api/settings', json={}).status_code, 401)
         self.login()
-        with self.client.session_transaction() as session:
+        with session_transaction(self.client) as session:
             headers = {'X-CSRF-Token': session['admin_csrf']}
         payload = {'quiz_id': 1, 'show_result': False}
         self.assertEqual(self.client.post('/admin/api/settings', json=payload).status_code, 400)
         self.assertEqual(self.client.post('/admin/api/settings', json={'quiz_id': 1, 'show_result': 'false'}, headers=headers).status_code, 400)
-        with patch.object(db, 'configurar_devolutiva') as configure:
+        with patch.object(AsyncDatabase, 'configurar_devolutiva') as configure:
             response = self.client.post('/admin/api/settings', json=payload, headers=headers)
             self.assertEqual(response.status_code, 200)
             configure.assert_called_once_with(1, False)
-        with patch.object(db, 'configurar_devolutiva', side_effect=ValueError('Sem algoritmo')):
+        with patch.object(AsyncDatabase, 'configurar_devolutiva', side_effect=ValueError('Sem algoritmo')):
             self.assertEqual(self.client.post('/admin/api/settings', json=payload, headers=headers).status_code, 400)
 
 

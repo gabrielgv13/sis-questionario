@@ -29,9 +29,10 @@ Requisitos do arquivo:
 - titulo deve ser um texto não vazio com até 300 caracteres.
 - ativo deve ser true se o questionário deve ficar disponível aos participantes
   ao importar; caso contrário, false. Não use strings "true" ou "false".
-- Para um questionário novo, mantenha algoritmo: null e exibir_resultado: false.
-  O sistema não aceita classificadores novos, pontuações ou resultados definidos
-  livremente neste arquivo. Não reutilize perfil_v1 para perguntas novas.
+- Para este arquivo de questionário, mantenha algoritmo: null e exibir_resultado: false.
+  Caso precise de classificação, prepare um segundo JSON conforme perfil.template.json
+  e use o mesmo identificador em algoritmo no questionário e version no algoritmo.
+  Não coloque pesos dentro do JSON do questionário.
 - perguntas deve ter de 1 a 100 objetos, cada um com somente enunciado e opcoes.
 - Cada enunciado deve ser distinto, não vazio e ter até 2.000 caracteres.
 - opcoes deve ser uma lista de 2 a 100 textos não vazios, distintos dentro da
@@ -61,5 +62,7 @@ o questionário aos participantes, defina `ativo: true` antes de importar; a
 interface atual não tem um controle para alterar esse status depois.
 
 Para reproduzir o Questionário de Perfil com sua classificação existente, use
-[questionario_perfil.json](questionario_perfil.json). Alterar suas perguntas ou
-alternativas exige revisar e implementar outro classificador na aplicação.
+[questionario_perfil.json](questionario_perfil.json) junto com
+[perfil_v1.json](../src/sis_questionario/perfil_v1.json). Para alterar perguntas,
+alternativas ou perfis, revise as regras no segundo arquivo e mantenha os textos
+exatamente iguais nos dois arquivos. Consulte o [formato do algoritmo](formato-questionario.md#arquivo-de-algoritmo).

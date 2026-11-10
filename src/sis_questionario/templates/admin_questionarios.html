@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Gerenciar questionários{% endblock %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='css/admin.css') }}">
 <div class="admin-area" id="questionnaire-manager" data-import="{{ url_for('admin.import_questionnaire') }}" data-token="{{ token }}">
   {% include 'admin_navigation.html' %}
   <header class="admin-heading"><div><p class="admin-eyebrow">BIBLIOTECA</p><h1>Gerenciar questionários</h1><p>Visualize os questionários cadastrados e suas configurações.</p></div><button type="button" class="admin-button admin-button-primary" data-management-action="import">Importar questionário</button></header>
@@ -17,19 +17,25 @@
       <div class="questionnaire-description"><div class="questionnaire-title"><h2>{{ q.titulo }}</h2><span class="admin-badge {{ 'admin-badge-active' if q.ativo else '' }}">{{ 'Ativo' if q.ativo else 'Inativo' }}</span></div>
         <p>Código: <strong>{{ q.codigo }}</strong></p><p>{{ 'Classificação de perfis configurada' if q.algoritmo else 'Sem classificação automática' }} · {{ 'Devolutiva habilitada' if q.exibir_resultado else 'Sem devolutiva ao participante' }}</p>
       </div>
-      <div class="questionnaire-actions"><button type="button" class="admin-button" data-management-action="export">Exportar JSON</button><button type="button" class="admin-button admin-button-danger" data-management-action="delete">Excluir</button></div>
+      <div class="questionnaire-actions"><button type="button" class="admin-button" data-management-action="export">Exportar JSON</button>{% if q.algoritmo %}<button type="button" class="admin-button" data-management-action="export_algorithm" data-export="{{ url_for('admin.export_algorithm', identifier=q.id_questionario) }}">Exportar algoritmo</button>{% endif %}<button type="button" class="admin-button admin-button-danger" data-management-action="delete">Excluir</button></div>
     </article>
     {% endfor %}
   </div>
   <p id="questionnaire-empty" class="admin-card" {% if questionarios %}hidden{% endif %}>Nenhum questionário encontrado.</p>
   <dialog id="management-dialog" class="management-dialog" aria-labelledby="management-dialog-title">
-    <form method="dialog"><div class="admin-heading"><h2 id="management-dialog-title"></h2><button type="submit" class="admin-button" aria-label="Fechar">×</button></div>
+    <form method="dialog"><div class="admin-heading"><h2 id="management-dialog-title"></h2><button type="submit" formnovalidate class="admin-button" aria-label="Fechar">×</button></div>
       <p id="management-dialog-description"></p>
-      <div id="management-import-fields" hidden><label for="questionnaire-file">Arquivo do questionário (.json, até 1 MiB)</label><input id="questionnaire-file" type="file" accept=".json,application/json"></div>
+      <div id="management-import-fields" hidden>
+        <label for="questionnaire-file">Arquivo do questionário (.json, até 1 MiB)</label><input id="questionnaire-file" type="file" accept=".json,application/json">
+        <div id="management-algorithm-fields" hidden>
+          <label for="algorithm-file">Arquivo do algoritmo (.json, até 1 MiB)</label><input id="algorithm-file" type="file" accept=".json,application/json">
+          <p id="management-algorithm-description"></p>
+        </div>
+      </div>
       <p id="management-file-status" role="status" aria-live="polite"></p>
-      <div class="management-dialog-actions"><button class="admin-button" type="submit">Voltar</button><button id="management-confirm" class="admin-button" type="button" disabled></button></div>
+      <div class="management-dialog-actions"><button class="admin-button" type="submit" formnovalidate>Voltar</button><button id="management-confirm" class="admin-button" type="button" disabled></button></div>
     </form>
   </dialog>
 </div>
-<script src="{{ url_for('static', filename='js/admin_questionarios.js') }}" defer></script>
+<script src="{{ url_for('static', path='js/admin_questionarios.js') }}" defer></script>
 {% endblock %}

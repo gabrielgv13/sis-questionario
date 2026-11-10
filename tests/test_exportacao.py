@@ -1,3 +1,5 @@
+from fastapi.testclient import TestClient
+from http_helpers import session_transaction
 import copy
 import csv
 import io
@@ -7,6 +9,7 @@ from unittest.mock import patch
 
 from sis_questionario import exportacao as exports
 from sis_questionario.app import create_app
+from sis_questionario.bd_async import AsyncDatabase
 
 
 class ExportTest(unittest.TestCase):
@@ -75,18 +78,20 @@ class ExportTest(unittest.TestCase):
 
     def test_endpoint_auth_csrf_and_attachment_formats(self):
         app = create_app(inicializar=False)
-        app.testing = True
-        client = app.test_client()
-        with client.session_transaction() as session:
+        client = TestClient(app, follow_redirects=False, base_url='https://testserver')
+        with session_transaction(client) as session:
             session['admin_csrf'] = 'token'
-        client.set_cookie('id_dispositivo', 'a867914f-3056-493e-90a2-c53e9b9cb157')
+        client.cookies.set('id_dispositivo', 'a867914f-3056-493e-90a2-c53e9b9cb157')
         self.assertEqual(client.post('/admin/api/export', json=self.payload).status_code, 401)
-        with client.session_transaction() as session:
+        with session_transaction(client) as session:
             session['admin_authenticated'] = True
         self.assertEqual(client.post('/admin/api/export', json=self.payload).status_code, 400)
+        query = patch.object(AsyncDatabase, 'resultados_questionario', side_effect=lambda *args: copy.deepcopy(self.result))
+        query.start()
+        self.addCleanup(query.stop)
         for kind, mime in [('json','application/json'), ('csv','text/csv'), ('pdf','application/pdf')]:
             response = client.post('/admin/api/export', json={**self.payload, 'format': kind}, headers={'X-CSRF-Token': 'token'})
             self.assertEqual(response.status_code, 200)
-            self.assertIn(mime, response.content_type)
+            self.assertIn(mime, response.headers['content-type'])
             self.assertIn(f'questionario-1.{kind}', response.headers['Content-Disposition'])
             self.assertEqual(response.headers['Cache-Control'], 'no-store')
