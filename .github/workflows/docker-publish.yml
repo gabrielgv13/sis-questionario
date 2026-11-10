@@ -3,7 +3,7 @@ name: Validate Docker stack and optionally publish
 on:
   pull_request:
   push:
-    branches: [main, feat/docker-render, feat/fastapi-async-routes]
+    branches: [master, feat/docker-render, feat/fastapi-async-routes]
   workflow_dispatch:
     inputs:
       publish:
@@ -92,13 +92,19 @@ jobs:
           WEB_WORKERS=2 docker compose up -d --no-deps --force-recreate --wait --wait-timeout 90 web-clean web-test
           uv run python tests/docker_stack_check.py verify
       - name: Login to Docker Hub
-        if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+        if: >-
+          (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/feat/fastapi-async-routes') &&
+          ((github.event_name == 'workflow_dispatch' && inputs.publish) ||
+          (github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-images]')))
         uses: docker/login-action@v4
         with:
           username: gabrielgventura
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Publish the tested runtime images
-        if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+        if: >-
+          (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/feat/fastapi-async-routes') &&
+          ((github.event_name == 'workflow_dispatch' && inputs.publish) ||
+          (github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-images]')))
         run: |
           for variant in clean test; do
             image="gabrielgventura/sis-questionario"

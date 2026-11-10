@@ -142,11 +142,14 @@ O script `tests/docker_stack_check.py` usa um stack descartável e salva cookies
 de teste em `.uv-cache/stack-state.json`, ignorado pelo Git. Não o execute contra
 uma instalação de produção.
 
-Publicar exige execução manual em `main` com `publish=true` e o secret
-`DOCKERHUB_TOKEN`. O workflow publica somente após todos os testes, usando as
+Publicar exige o secret `DOCKERHUB_TOKEN` e uma solicitação explícita: execução
+manual com `publish=true`, ou push cujo commit contenha `[publish-images]`.
+Somente `master` e `feat/fastapi-async-routes` podem publicar. O disparo manual
+depende de o workflow também existir na branch padrão do repositório.
+O workflow publica somente após todos os testes, usando as
 mesmas imagens runtime testadas. São mantidas as tags `clean`, `test`,
 `clean-<commit>` e `test-<commit>` em `gabrielgventura/sis-questionario`.
-Uma execução comum, inclusive manual com o padrão `publish=false`, não publica.
+Um push sem esse marcador ou execução manual com `publish=false` não publica.
 
 As imagens históricas registradas em 03/11/2026, commit
 `a5ab37cb09e35ada115d092fda18386d762d4359`, antecedem esta migração ASGI.
