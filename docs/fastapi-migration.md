@@ -77,12 +77,13 @@ provisionamento continuam síncronos, sem `asyncio.run()` dentro de rotas.
 As sessões usam cookies assinados do Starlette. Sessões Flask antigas exigem
 novo login ou reinício do formulário; `id_dispositivo` continua compatível.
 
-## Containers fora do escopo
+## Containers
 
-Dockerfiles, entrypoint dos containers, Compose, Render e configuração legada
-Gunicorn/gevent não foram alterados. Os comandos WSGI desses containers ainda
-precisam ser migrados antes de implantar esta versão. As dependências legadas
-permanecem até essa entrega.
+As imagens clean e test usam o mesmo launcher Uvicorn, com binding interno
+`0.0.0.0:10000`, reload desativado e provisionamento separado. Gunicorn, gevent
+e o pool síncrono legado foram removidos. CLI e provisionamento continuam com
+conexões síncronas diretas. Consulte [Docker e Compose](docker-render.md) para
+builds, atualização dos volumes existentes e validação antes de publicar.
 
 ## Validação
 

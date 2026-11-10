@@ -1,5 +1,6 @@
 """Valida os segredos e inicia exclusivamente o processo web."""
 import os
+import sys
 
 from sis_questionario.config import senha_banco
 
@@ -14,8 +15,8 @@ if len(senha_banco()) < 24:
 for key in tuple(os.environ):
     if key.startswith('DB_ADMIN_'):
         del os.environ[key]
-os.execvp('gunicorn', ['gunicorn', 'sis_questionario.app:create_app()',
-                      '--no-control-socket',
-                      '--bind', '0.0.0.0:' + os.environ.get('PORT', '10000'),
-                      '--config', 'python:sis_questionario.gunicorn_config',
-                      '--timeout', '60', '--access-logfile', '-', '--error-logfile', '-'])
+os.environ.setdefault('WEB_HOST', '0.0.0.0')
+os.environ.setdefault('PORT', '10000')
+if os.environ.get('WEB_RELOAD', '0') != '0':
+    raise SystemExit('WEB_RELOAD deve ser 0 nos containers.')
+os.execvp(sys.executable, [sys.executable, '-m', 'sis_questionario.server'])

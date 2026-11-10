@@ -6,5 +6,13 @@
 !src/**
 !images/
 !images/**
+!tests/
+!tests/**
+!docs/
+!docs/**
+!compose.yaml
+!compose.validation.yaml
+!.env.docker.example
+!.dockerignore
 **/__pycache__
 **/*.pyc

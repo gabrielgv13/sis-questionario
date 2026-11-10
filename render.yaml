@@ -35,6 +35,12 @@ services:
         value: "1"
       - key: TRUST_PROXY
         value: "1"
+      - key: FORWARDED_ALLOW_IPS
+        sync: false
+      - key: WEB_WORKERS
+        value: "1"
+      - key: WEB_SHUTDOWN_TIMEOUT
+        value: "30"
 databases:
   - name: sis-questionario-db
     databaseName: sis_questionario

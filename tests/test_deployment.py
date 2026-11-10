@@ -6,6 +6,7 @@ import tempfile
 import unittest
 import uuid
 import runpy
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
@@ -31,10 +32,23 @@ class DeploymentConfigurationTest(unittest.TestCase):
             runpy.run_path(str(Path(__file__).resolve().parents[1] / 'images/common/entrypoint.py'))
             self.assertNotIn('DB_ADMIN_PASSWORD', os.environ)
             self.assertNotIn('DB_ADMIN_USER', os.environ)
-            self.assertEqual(execute.call_args.args[0], 'gunicorn')
+            self.assertEqual(execute.call_args.args[0], sys.executable)
             arguments = execute.call_args.args[1]
-            self.assertIn('python:sis_questionario.gunicorn_config', arguments)
-            self.assertNotIn('--workers', arguments)
+            self.assertEqual(arguments, [sys.executable, '-m', 'sis_questionario.server'])
+
+    def test_web_exec_sets_container_binding_and_disables_reload(self):
+        environment = {'DB_USER': 'sis_app', 'DB_PASSWORD_FILE': '', 'DB_PASSWORD': 'x' * 32,
+                       'SECRET_KEY': 's' * 32, 'ADMIN_PASSWORD': 'admin-test'}
+        path = str(Path(__file__).resolve().parents[1] / 'images/common/entrypoint.py')
+        with patch.dict(os.environ, environment, clear=True), patch('os.execvp') as execute:
+            runpy.run_path(path)
+            self.assertEqual(os.environ['WEB_HOST'], '0.0.0.0')
+            self.assertEqual(os.environ['PORT'], '10000')
+            execute.assert_called_once()
+        with patch.dict(os.environ, {**environment, 'WEB_RELOAD': '1'}, clear=True), patch('os.execvp') as execute:
+            with self.assertRaises(SystemExit):
+                runpy.run_path(path)
+            execute.assert_not_called()
 
     def test_generated_password_is_persistent_and_readable_by_connection(self):
         with tempfile.TemporaryDirectory() as directory:

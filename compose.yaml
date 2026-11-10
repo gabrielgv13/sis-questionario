@@ -7,9 +7,21 @@ x-app-env: &app-env
 
 x-web-env: &web-env
   <<: *app-env
-  ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Defina ADMIN_PASSWORD no arquivo de ambiente}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+  ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:-}
   SECRET_KEY: ${SECRET_KEY:?Defina SECRET_KEY no arquivo de ambiente}
   PORT: "10000"
+  WEB_HOST: "0.0.0.0"
+  WEB_WORKERS: ${WEB_WORKERS:-1}
+  WEB_RELOAD: "0"
+  WEB_SHUTDOWN_TIMEOUT: ${WEB_SHUTDOWN_TIMEOUT:-30}
+  COOKIE_SECURE: ${COOKIE_SECURE:-0}
+  TRUST_PROXY: ${TRUST_PROXY:-0}
+  FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-127.0.0.1,::1}
+  DB_POOL_MIN_SIZE: ${DB_POOL_MIN_SIZE:-0}
+  DB_POOL_MAX_SIZE: ${DB_POOL_MAX_SIZE:-2}
+  DB_POOL_TIMEOUT: ${DB_POOL_TIMEOUT:-5}
+  DB_POOL_MAX_WAITING: ${DB_POOL_MAX_WAITING:-32}
 
 x-db: &db
   image: postgres:18
@@ -25,6 +37,7 @@ x-db: &db
 
 x-web: &web
   restart: unless-stopped
+  stop_grace_period: ${WEB_STOP_GRACE_PERIOD:-45s}
   read_only: true
   tmpfs: [/tmp]
   security_opt: [no-new-privileges:true]
@@ -43,7 +56,7 @@ services:
     volumes: [clean-db:/var/lib/postgresql]
     networks: [clean]
   prepare-clean:
-    image: gabrielgventura/sis-questionario:clean
+    image: gabrielgventura/sis-questionario:clean${IMAGE_SUFFIX:-}
     profiles: [clean]
     build: {context: ., dockerfile: images/clean-image/Dockerfile}
     command: [sis-questionario-provision]
@@ -57,7 +70,7 @@ services:
       db-clean: {condition: service_healthy}
     networks: [clean]
   web-clean:
-    image: gabrielgventura/sis-questionario:clean
+    image: gabrielgventura/sis-questionario:clean${IMAGE_SUFFIX:-}
     <<: *web
     profiles: [clean]
     build: {context: ., dockerfile: images/clean-image/Dockerfile}
@@ -75,7 +88,7 @@ services:
     volumes: [test-db:/var/lib/postgresql]
     networks: [test]
   prepare-test:
-    image: gabrielgventura/sis-questionario:test
+    image: gabrielgventura/sis-questionario:test${IMAGE_SUFFIX:-}
     profiles: [test]
     build: {context: ., dockerfile: images/test-image/Dockerfile}
     command: [sis-questionario-provision]
@@ -89,7 +102,7 @@ services:
       db-test: {condition: service_healthy}
     networks: [test]
   web-test:
-    image: gabrielgventura/sis-questionario:test
+    image: gabrielgventura/sis-questionario:test${IMAGE_SUFFIX:-}
     <<: *web
     profiles: [test]
     build: {context: ., dockerfile: images/test-image/Dockerfile}

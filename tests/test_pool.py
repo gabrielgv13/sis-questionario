@@ -5,38 +5,14 @@ from unittest.mock import patch
 import psycopg
 from psycopg_pool import ConnectionPool, PoolTimeout
 
-from sis_questionario import bd_exec as db, database_pool as pools
+from sis_questionario import bd_exec as db
 
 
 class PoolLifecycleTest(unittest.TestCase):
-    def tearDown(self):
-        pools.fechar_pool()
-
     def test_cli_uses_direct_connection(self):
         with patch.object(db.psycopg, 'connect') as connect:
             db.conectar()
         connect.assert_called_once()
-
-    def test_web_pool_is_bounded_and_closed(self):
-        with patch.dict(os.environ, {}, clear=True), patch('psycopg_pool.ConnectionPool') as factory:
-            pools.iniciar_pool()
-            pools.iniciar_pool()
-            self.assertEqual(factory.call_count, 1)
-            self.assertEqual(factory.call_args.kwargs['max_size'], 2)
-            self.assertEqual(factory.call_args.kwargs['min_size'], 0)
-            self.assertEqual(factory.call_args.kwargs['max_waiting'], 32)
-            self.assertFalse(factory.call_args.kwargs['open'])
-            self.assertIs(db.conectar(), factory.return_value.connection.return_value)
-            pools.fechar_pool()
-            factory.return_value.close.assert_called_once()
-
-    def test_invalid_configuration_and_inherited_pool(self):
-        with patch.dict(os.environ, {'DB_POOL_MAX_SIZE': '0'}):
-            with self.assertRaises(ValueError):
-                pools.iniciar_pool()
-        with patch.object(pools, '_pool', object()), patch.object(pools, '_pid', -1):
-            with self.assertRaisesRegex(RuntimeError, 'fork'):
-                pools.obter_pool()
 
 
 @unittest.skipUnless(os.environ.get('TEST_DATABASE_URL'), 'Configure TEST_DATABASE_URL.')

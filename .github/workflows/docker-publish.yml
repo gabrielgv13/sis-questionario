@@ -1,28 +1,44 @@
-name: Test and publish Docker images
+name: Validate Docker stack and optionally publish
 
 on:
-  workflow_dispatch:
+  pull_request:
   push:
-    branches: [main, feat/docker-render]
+    branches: [main, feat/docker-render, feat/fastapi-async-routes]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the validated images to Docker Hub
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: docker-publish-${{ github.ref }}
+  group: docker-stack-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  publish:
+  validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     env:
-      COMPOSE_PROJECT_NAME: sis_ci
+      COMPOSE_PROJECT_NAME: sis_ci_${{ github.run_id }}_${{ github.run_attempt }}
       COMPOSE_PROFILES: clean,test
+      WEB_WORKERS: '1'
+      COOKIE_SECURE: '0'
+      TRUST_PROXY: '0'
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.13.5'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
       - name: Generate ephemeral test credentials
         shell: bash
         run: |
@@ -31,58 +47,66 @@ jobs:
             echo "::add-mask::$value"
             echo "$key=$value" >> "$GITHUB_ENV"
           done
-      - name: Validate configuration and build both variants
+      - name: Validate Compose and build runtime and validation targets
         run: |
           docker compose config --quiet
+          docker compose -f compose.yaml -f compose.validation.yaml config --quiet
           docker compose build --pull
+          docker compose -f compose.yaml -f compose.validation.yaml --profile clean --profile test --profile validation build validate
+          uv sync --frozen --python 3.14
       - name: Start both variants
         run: docker compose up -d --wait --wait-timeout 180
-      - name: Check initial clean and profile databases
+      - name: Check initial databases and runtime isolation
         run: |
           docker compose exec -T web-clean python -c "from sis_questionario import bd_exec as db; from sis_questionario.provision import TABLES; c=db.conectar(); assert all(c.execute('SELECT COUNT(*) AS n FROM '+t).fetchone()['n']==0 for t in TABLES); c.close()"
-          docker compose exec -T web-test python -c "from sis_questionario import bd_exec as db; c=db.conectar(); expected={'questionarios':1,'perguntas':11,'opcoes':120,'alunos':0,'envios':0,'respostas':0}; assert all(c.execute('SELECT COUNT(*) AS n FROM '+t).fetchone()['n']==n for t,n in expected.items()); c.close()"
-          curl --fail http://localhost:5000/healthz
-          curl --fail http://localhost:5001/healthz
-      - name: Run full suite against password-authenticated PostgreSQL
+          docker compose exec -T web-test python -c "from sis_questionario import bd_exec as db; c=db.conectar(); expected={'questionarios':1,'perguntas':11,'opcoes':120,'alunos':0,'envios':0,'respostas':0}; assert all(c.execute('SELECT COUNT(*) AS n FROM '+t).fetchone()['n']==n for t,n in expected.items()); assert c.execute('SELECT regras_algoritmo FROM questionarios').fetchone()['regras_algoritmo']['version']=='perfil_v1'; c.close()"
+          for service in web-clean web-test; do
+            docker compose exec -T "$service" python -c "import importlib.util as i, os; from pathlib import Path; assert os.getuid()==10001; assert not any(k.startswith('DB_ADMIN_') for k in os.environ); assert all(i.find_spec(m) is None for m in ('httpx','yaml','gunicorn','gevent')); assert not any(Path('/app',p).exists() for p in ('tests','docs','.env'))"
+          done
+      - name: Run integration suite in validation target and browser logic tests
         run: |
-          docker compose run --rm --no-deps \
-            -e "TEST_DATABASE_URL=postgresql://sis_owner:${POSTGRES_PASSWORD}@db-clean:5432/sis_questionario?connect_timeout=5" \
-            -v "$PWD/tests:/validation/tests:ro" \
-            -v "$PWD/docs:/validation/docs:ro" \
-            -v "$PWD/images:/validation/images:ro" \
-            -v "$PWD/src:/validation/src:ro" \
-            prepare-clean python -m unittest discover -s /validation/tests -v
-      - name: Verify restart preserves readiness
+          docker compose -f compose.yaml -f compose.validation.yaml --profile clean --profile test --profile validation run --rm --no-deps validate
+          node tests/test_import_ui.cjs
+          uv run python tests/docker_stack_check.py exercise
+      - name: Reprovision and recreate web processes without replacing volumes
         run: |
-          docker compose restart web-clean web-test
-          docker compose up -d --wait --wait-timeout 90
-      - name: Require Docker Hub credentials
-        env:
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          docker compose run --rm --no-deps prepare-clean
+          docker compose run --rm --no-deps prepare-test
+          docker compose stop web-clean web-test
+          for service in web-clean web-test; do
+            code="$(docker inspect --format '{{.State.ExitCode}}' "$(docker compose ps -aq "$service")")"
+            test "$code" = 0 || test "$code" = 143
+            docker compose logs --no-color "$service" | grep -q 'Application shutdown complete'
+          done
+          docker compose up -d --no-deps --force-recreate --wait --wait-timeout 90 web-clean web-test
+          uv run python tests/docker_stack_check.py verify
+      - name: Verify database outage and pool recovery
         run: |
-          if [ -z "$DOCKERHUB_TOKEN" ]; then
-            echo 'Configure the repository secret DOCKERHUB_TOKEN before publishing.'
-            exit 1
-          fi
+          docker compose stop db-clean
+          uv run python tests/docker_stack_check.py unavailable
+          docker compose up -d --wait --wait-timeout 90 db-clean
+          docker compose up -d --wait --wait-timeout 90 web-clean
+          uv run python tests/docker_stack_check.py verify
+      - name: Verify session persistence with two workers
+        run: |
+          WEB_WORKERS=2 docker compose up -d --no-deps --force-recreate --wait --wait-timeout 90 web-clean web-test
+          uv run python tests/docker_stack_check.py verify
       - name: Login to Docker Hub
+        if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
         uses: docker/login-action@v4
         with:
           username: gabrielgventura
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Push tested images
+      - name: Publish the tested runtime images
+        if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
         run: |
           for variant in clean test; do
             image="gabrielgventura/sis-questionario"
             docker tag "$image:$variant" "$image:$variant-${GITHUB_SHA}"
             docker push "$image:$variant-${GITHUB_SHA}"
             docker push "$image:$variant"
+            echo "- docker.io/$image:$variant-${GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
           done
-      - name: Write image references
-        run: |
-          echo '### Docker Hub images' >> "$GITHUB_STEP_SUMMARY"
-          echo '- `docker.io/gabrielgventura/sis-questionario:clean`' >> "$GITHUB_STEP_SUMMARY"
-          echo '- `docker.io/gabrielgventura/sis-questionario:test`' >> "$GITHUB_STEP_SUMMARY"
-          echo "Immutable tags: clean-${GITHUB_SHA} and test-${GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
       - name: Container logs on failure
         if: failure()
         run: docker compose logs --no-color --tail 80

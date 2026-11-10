@@ -1,6 +1,6 @@
 # Sistema de questionário
 
-> A execução local usa FastAPI, Uvicorn e pool assíncrono do Psycopg 3. Os containers ainda aguardam adaptação para ASGI. Consulte [o escopo e a validação da migração](docs/fastapi-migration.md).
+> A execução local e os containers usam FastAPI, Uvicorn e pool assíncrono do Psycopg 3. Consulte [Docker e Compose](docs/docker-render.md) e [a migração para ASGI](docs/fastapi-migration.md).
 
 Aplicação com FastAPI, PostgreSQL/Psycopg, Tailwind CSS e painel de análise integrado.
 Permite cadastrar participantes, escolher questionários e responder todas as
