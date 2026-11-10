@@ -28,6 +28,9 @@ class DeploymentConfigurationTest(unittest.TestCase):
             self.assertNotIn('DB_ADMIN_PASSWORD', os.environ)
             self.assertNotIn('DB_ADMIN_USER', os.environ)
             self.assertEqual(execute.call_args.args[0], 'gunicorn')
+            arguments = execute.call_args.args[1]
+            self.assertIn('python:sis_questionario.gunicorn_config', arguments)
+            self.assertNotIn('--workers', arguments)
 
     def test_generated_password_is_persistent_and_readable_by_connection(self):
         with tempfile.TemporaryDirectory() as directory:

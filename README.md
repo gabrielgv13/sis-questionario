@@ -275,6 +275,11 @@ Durante a edição, use `npm run watch:css`. O fluxo usa o
 
 ## Testes
 
+O Gunicorn usa gevent e um pool PostgreSQL por worker. O número padrão de workers
+é `max(1, floor(CPUs efetivas + 1))`, considerando afinidade e quotas do contêiner.
+Consulte [concorrência e pools](docs/docker-render.md#concorrência-e-pools)
+para limites, variáveis e configuração do Render Free.
+
 Os testes usam um administrador em uma conexão separada para criar schemas e
 roles temporárias, revertidos ao final. Os testes verificam também uma conta restrita.
 

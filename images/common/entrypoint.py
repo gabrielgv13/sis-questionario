@@ -17,5 +17,5 @@ for key in tuple(os.environ):
 os.execvp('gunicorn', ['gunicorn', 'sis_questionario.app:create_app()',
                       '--no-control-socket',
                       '--bind', '0.0.0.0:' + os.environ.get('PORT', '10000'),
-                      '--workers', os.environ.get('WEB_WORKERS', '2'),
+                      '--config', 'python:sis_questionario.gunicorn_config',
                       '--timeout', '60', '--access-logfile', '-', '--error-logfile', '-'])

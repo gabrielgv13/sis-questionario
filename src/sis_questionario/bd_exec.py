@@ -10,10 +10,14 @@ from psycopg.types.json import Jsonb
 from .config import carregar_configuracao, conexao_banco
 from .perfis import CATEGORIAS, VERSAO, classificar
 from .questionario_json import validar
+from .database_pool import obter_pool
 
 
 def conectar():
     carregar_configuracao()
+    pool = obter_pool()
+    if pool is not None:
+        return pool.connection()
     return psycopg.connect(**conexao_banco(), row_factory=dict_row)
 
 

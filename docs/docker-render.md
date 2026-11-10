@@ -136,6 +136,69 @@ atualizar, faça backup do Postgres. Reverta o serviço para o digest anterior a
 se o esquema continuar compatível; restaurar dados de backup deve ser planejado
 separadamente. Não remova banco/volumes para realizar rollback.
 
+## Concorrência e pools
+
+As imagens usam Gunicorn com `worker_class=gevent`, sem preload da aplicação.
+O worker aplica monkey patch antes de importar Psycopg e `psycopg_pool`;
+`post_worker_init` abre o pool após o fork e verifica o patch de select,
+threading e queue. `worker_exit` fecha o pool; a saída normal também tem um
+fallback atexit. SIGKILL não executa hooks, mas o sistema fecha os sockets.
+Não use `--preload` nem importe bibliotecas de banco em configuração do master.
+Os comandos CLI e o provisionamento continuam abrindo conexões diretas.
+
+`conectar()` retorna o contexto do pool no web: sucesso confirma a transação;
+exceção desfaz; a conexão sempre volta ao pool, inclusive após falha de commit.
+Conexões quebradas são descartadas e há verificação antes do empréstimo.
+O pool pertence ao processo, nunca à requisição; não o feche em teardown do Flask.
+
+| Variável | Padrão | Efeito |
+| --- | --- | --- |
+| `WEB_WORKERS` | calculado | Override inteiro positivo |
+| `WEB_CPU_CORES` | ausente | Limite adicional positivo, quando o provedor não expõe a quota |
+| `DB_POOL_MIN_SIZE` | `0` | Conexões iniciais por worker, abertas sob demanda |
+| `DB_POOL_MAX_SIZE` | `2` | Máximo de conexões por worker |
+| `DB_POOL_TIMEOUT` | `5` | Segundos máximos aguardando conexão |
+| `DB_POOL_MAX_WAITING` | `32` | Máximo de clientes na fila por worker |
+
+O cálculo é `max(1, floor(CPUs efetivas + 1))`. CPUs efetivas são o menor valor
+entre afinidade, quotas cgroup v2 (`cpu.max`), v1 (`cpu.cfs_*`), ancestrais
+visíveis e `WEB_CPU_CORES`, quando definido. Sem quota visível, usa afinidade
+(ou contagem disponível do Python). Não usa automaticamente os cores físicos
+do host quando há uma quota visível. Em montagens cgroup não convencionais,
+informe `WEB_CPU_CORES` ou `WEB_WORKERS` explicitamente.
+
+Para a hospedagem Render Free descrita neste projeto (0,1 CPU e 512 MB),
+`floor(0.1 + 1) = 1`: um worker, máximo de duas conexões. Configure
+`WEB_CPU_CORES=0.1` no painel se a quota não estiver exposta no contêiner.
+Uma CPU resulta em dois workers. Mais processos não fornecem mais CPU.
+O `render.yaml` continua descrevendo web Starter e PostgreSQL pagos; ele não
+representa a implantação Free e não foi convertido para Free.
+
+Orçamento de banco: `réplicas × WEB_WORKERS × DB_POOL_MAX_SIZE`, mais conexões
+de migração, administração e outros clientes. Durante deploys pode haver
+instâncias antigas e novas simultaneamente. Reserve essa margem no limite do
+PostgreSQL. Há 64 conexões HTTP simultâneas por worker; isso não representa
+64 consultas simultâneas nem uma capacidade comprovada de usuários.
+
+Python 3.14 convencional (com GIL), Psycopg 3.3.6, psycopg-pool 3.3.3 e gevent
+26.9.0 estão no lockfile. O gevent oferece suporte ao Python 3.14; o Psycopg
+3 suporta gevent nativamente quando select é patchado. O patch antecipado de
+threading e queue também torna cooperativas as esperas do pool. Não é necessário
+psycogreen. Gunicorn/gevent são dependências do runtime Unix; o desenvolvimento
+Windows e os comandos CLI não dependem do gevent.
+
+Fontes: [compatibilidade gevent](https://www.gevent.org/install.html),
+[Psycopg e gevent](https://www.psycopg.org/psycopg3/docs/advanced/async.html#gevent-support),
+[transações no pool](https://www.psycopg.org/psycopg3/docs/advanced/pool.html).
+
+A suíte inclui reutilização de conexão, commit, rollback, erro SQL, esgotamento,
+quotas fracionárias, ciclo de vida e override. Em Linux com `TEST_DATABASE_URL`,
+um subprocesso aplica o patch antes dos imports e verifica que `pg_sleep` e a
+espera de pool não bloqueiam outros greenlets. O workflow `python-tests.yml`
+executa a suíte com Python 3.14 e PostgreSQL 18. Isso não substitui um teste de
+carga. PDFs continuam síncronos e usam CPU no worker; relatórios ainda executam
+agregações por pergunta. Não há capacidade concorrente medida.
+
 ## Segurança e validação
 
 A role do runtime tem SELECT/INSERT nas seis tabelas, USAGE em suas sequências e
