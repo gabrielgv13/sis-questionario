@@ -30,7 +30,7 @@ class ParticipantRoutesTest(unittest.TestCase):
     def start_questionnaire(self):
         self.assertEqual(self.client.get('/').status_code, 200)
         response = self.client.post('/submit-info', data={
-            'name': ' Aluno ', 'email': ' ALUNO@EXAMPLE.COM ', 'questionario_id': '1'})
+            'name': ' aluno ', 'email': ' ALUNO@EXAMPLE.COM ', 'questionario_id': '1'})
         self.assertEqual(response.status_code, 302)
         db.registrar_aluno.assert_called_once_with('Aluno', 'aluno@example.com')
         page = self.client.get('/pesquisa-perguntas')
