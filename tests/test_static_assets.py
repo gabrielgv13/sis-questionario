@@ -1,5 +1,7 @@
 """Verify the styles and scripts exposed by the ASGI application."""
+import os
 import unittest
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -7,6 +9,7 @@ from sis_questionario.app import create_app
 
 
 class StaticAssetsTest(unittest.TestCase):
+    @patch.dict(os.environ, {'ADMIN_PASSWORD': 'static-assets-test', 'ADMIN_PASSWORD_HASH': ''})
     def test_login_styles_and_admin_scripts_are_served(self):
         client = TestClient(create_app(), base_url='https://testserver')
         page = client.get('/admin/login')
