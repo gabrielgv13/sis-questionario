@@ -61,12 +61,31 @@ class AdminAccessTest(unittest.TestCase):
         self.assertIn(b'id="admin-dashboard"', analysis.content)
         self.assertEqual(management.status_code, 200)
         self.assertIn(b'Perfil &lt;teste&gt;', management.content)
-        self.assertIn(b'id="management-confirm" class="admin-button" type="button" disabled', management.content)
+        self.assertIn(b'id="management-confirm" class="admin-button admin-button-primary" type="button" disabled', management.content)
         self.assertIn(b'data-management-action="import"', management.content)
         self.assertIn(b'data-management-action="export"', management.content)
         self.assertIn(b'data-management-action="delete"', management.content)
         self.assertNotIn(b'id="admin-dashboard"', management.content)
         self.assertEqual(management.headers['Cache-Control'], 'no-store')
+
+    def test_visibility_requires_authentication_csrf_and_boolean(self):
+        url = '/admin/api/questionnaires/1/visibility'
+        self.client.get('/admin/login')
+        self.assertEqual(self.client.post(url, json={'visible': False}).status_code, 401)
+        self.login()
+        with session_transaction(self.client) as session:
+            headers = {'X-CSRF-Token': session['admin_csrf']}
+        with patch.object(AsyncDatabase, 'configurar_visibilidade', return_value=True) as configure:
+            self.assertEqual(self.client.post(url, json={'visible': False}).status_code, 400)
+            for payload in [{}, [], {'visible': 'false'}, {'visible': 0}]:
+                self.assertEqual(self.client.post(url, json=payload, headers=headers).status_code, 400)
+            configure.assert_not_called()
+            for visible in [False, True]:
+                response = self.client.post(url, json={'visible': visible}, headers=headers)
+                self.assertEqual(response.status_code, 200)
+                configure.assert_called_with(1, visible)
+            configure.return_value = False
+            self.assertEqual(self.client.post(url, json={'visible': False}, headers=headers).status_code, 404)
 
     def test_login_requires_configuration_correct_password_and_csrf(self):
         self.assertEqual(self.client.post('/admin/login', data={'password': 'test-admin-password'}).status_code, 400)

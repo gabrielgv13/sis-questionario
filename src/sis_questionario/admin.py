@@ -216,3 +216,15 @@ async def export(request: Request, db: AsyncDatabase = Depends(get_database)):
     generate, content_type = generators[kind]
     return Response(await run_in_threadpool(generate, result), media_type=content_type, headers={
         'Content-Disposition': f'attachment; filename="questionario-{data["quiz_id"]}.{kind}"'})
+
+
+@admin.post('/api/questionnaires/{identifier:int}/visibility', name='admin.questionnaire_visibility')
+@protected
+async def questionnaire_visibility(request: Request, identifier: int, db: AsyncDatabase = Depends(get_database)):
+    check_csrf(request, request.headers.get('X-CSRF-Token'))
+    data = await read_json(request)
+    if not isinstance(data, dict) or type(data.get('visible')) is not bool:
+        return JSONResponse({'error': 'Visibilidade inválida.'}, status_code=400)
+    if not await db.configurar_visibilidade(identifier, data['visible']):
+        abort(404)
+    return JSONResponse({'ok': True, 'visible': data['visible']})

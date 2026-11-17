@@ -249,3 +249,12 @@ class AsyncDatabase:
                 (habilitada, habilitada, id_questionario))).fetchone())
             if not row:
                 raise ValueError('Questionário sem algoritmo de classificação.')
+
+    async def configurar_visibilidade(self, id_questionario, visivel):
+        async with self.pool.connection() as conn:
+            row = await (await conn.execute(
+                """UPDATE questionarios SET ativo = %s,
+                documento = jsonb_set(documento, '{ativo}', to_jsonb(%s::boolean))
+                WHERE id_questionario = %s RETURNING id_questionario""",
+                (visivel, visivel, id_questionario))).fetchone()
+            return row is not None

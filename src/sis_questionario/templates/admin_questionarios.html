@@ -17,7 +17,7 @@
       <div class="questionnaire-description"><div class="questionnaire-title"><h2>{{ q.titulo }}</h2><span class="admin-badge {{ 'admin-badge-active' if q.ativo else '' }}">{{ 'Ativo' if q.ativo else 'Inativo' }}</span></div>
         <p>Código: <strong>{{ q.codigo }}</strong></p><p>{{ 'Classificação de perfis configurada' if q.algoritmo else 'Sem classificação automática' }} · {{ 'Devolutiva habilitada' if q.exibir_resultado else 'Sem devolutiva ao participante' }}</p>
       </div>
-      <div class="questionnaire-actions"><button type="button" class="admin-button" data-management-action="export">Exportar JSON</button>{% if q.algoritmo %}<button type="button" class="admin-button" data-management-action="export_algorithm" data-export="{{ url_for('admin.export_algorithm', identifier=q.id_questionario) }}">Exportar algoritmo</button>{% endif %}<button type="button" class="admin-button admin-button-danger" data-management-action="delete">Excluir</button></div>
+      <div class="questionnaire-actions"><button type="button" class="admin-button" data-management-action="visibility" data-visible="{{ 'true' if q.ativo else 'false' }}" data-visibility-url="{{ url_for('admin.questionnaire_visibility', identifier=q.id_questionario) }}" aria-label="Alterar visibilidade de {{ q.titulo }}">{{ 'Visível' if q.ativo else 'Oculto' }}</button><button type="button" class="admin-button" data-management-action="export">Exportar JSON</button>{% if q.algoritmo %}<button type="button" class="admin-button" data-management-action="export_algorithm" data-export="{{ url_for('admin.export_algorithm', identifier=q.id_questionario) }}">Exportar algoritmo</button>{% endif %}<button type="button" class="admin-button admin-button-danger" data-management-action="delete">Excluir</button></div>
     </article>
     {% endfor %}
   </div>
@@ -26,14 +26,24 @@
     <form method="dialog"><div class="admin-heading"><h2 id="management-dialog-title"></h2><button type="submit" formnovalidate class="admin-button" aria-label="Fechar">×</button></div>
       <p id="management-dialog-description"></p>
       <div id="management-import-fields" hidden>
-        <label for="questionnaire-file">Arquivo do questionário (.json, até 1 MiB)</label><input id="questionnaire-file" type="file" accept=".json,application/json">
-        <div id="management-algorithm-fields" hidden>
-          <label for="algorithm-file">Arquivo do algoritmo (.json, até 1 MiB)</label><input id="algorithm-file" type="file" accept=".json,application/json">
-          <p id="management-algorithm-description"></p>
+        <div class="management-upload">
+          <h3>1. Selecione o JSON de questões</h3>
+          <p id="questionnaire-file-help">Escolha o arquivo com a estrutura do questionário, suas perguntas e alternativas (.json, até 1 MiB).</p>
+          <input id="questionnaire-file" type="file" accept=".json,application/json" aria-label="JSON de questões" aria-describedby="questionnaire-file-help" hidden>
+          <button type="button" class="admin-button" data-select-file="questionnaire-file">Selecionar JSON de questões</button>
+          <p id="questionnaire-file-name" class="management-file-name">Nenhum arquivo selecionado.</p>
         </div>
+        <div id="management-algorithm-fields" class="management-upload" hidden>
+          <h3>2. Selecione o JSON do algoritmo</h3>
+          <p id="management-algorithm-description"></p>
+          <input id="algorithm-file" type="file" accept=".json,application/json" aria-label="JSON do algoritmo" aria-describedby="management-algorithm-description" hidden>
+          <button type="button" class="admin-button" data-select-file="algorithm-file">Selecionar JSON do algoritmo</button>
+          <p id="algorithm-file-name" class="management-file-name">Nenhum arquivo selecionado.</p>
+        </div>
+        <p class="management-upload-help">Selecionar os arquivos não os envia. Depois de selecionar todos os arquivos necessários, clique em “Enviar e importar JSON” abaixo.</p>
       </div>
       <p id="management-file-status" role="status" aria-live="polite"></p>
-      <div class="management-dialog-actions"><button class="admin-button" type="submit" formnovalidate>Voltar</button><button id="management-confirm" class="admin-button" type="button" disabled></button></div>
+      <div class="management-dialog-actions"><button id="management-cancel" class="admin-button" type="submit" formnovalidate>Voltar</button><button id="management-confirm" class="admin-button admin-button-primary" type="button" disabled></button></div>
     </form>
   </dialog>
 </div>
