@@ -60,7 +60,7 @@ def create_app(inicializar=True):
 
     @app.route('/submit-info', methods=['POST'])
     def submit():
-        nome = request.form.get('name', '').strip()
+        nome = request.form.get('name', '').strip().title()
         email = request.form.get('email', '').strip().lower()
         questionario_id = request.form.get('questionario_id', type=int)
         if not nome or not email or '@' not in email:
