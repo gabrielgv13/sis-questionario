@@ -15,8 +15,8 @@ from sis_questionario.questionario_json import MAX_BYTES, validar as validar_que
 
 
 def exemplos():
-    quiz = json.loads(Path('docs/questionario.template.json').read_text(encoding='utf-8'))
-    rules = json.loads(Path('docs/perfil.template.json').read_text(encoding='utf-8'))
+    quiz = json.loads(Path('tests/fixtures/questionario.template.json').read_text(encoding='utf-8'))
+    rules = json.loads(Path('tests/fixtures/perfil.template.json').read_text(encoding='utf-8'))
     quiz.update(algoritmo=rules['version'], exibir_resultado=True, ativo=True)
     return quiz, rules
 
@@ -33,7 +33,7 @@ class AlgorithmValidationTest(unittest.TestCase):
         self.assertEqual(result['version'], quiz['algoritmo'])
 
     def test_embedded_profile_still_requires_explicit_import_file(self):
-        quiz = json.loads(Path('docs/questionario_perfil.json').read_text(encoding='utf-8'))
+        quiz = json.loads(Path('tests/fixtures/questionario_perfil.json').read_text(encoding='utf-8'))
         with self.assertRaisesRegex(ValueError, 'Selecione'):
             regras_importacao(quiz, None)
         rules = Path('src/sis_questionario/perfil_v1.json').read_bytes()
@@ -105,7 +105,7 @@ class AlgorithmImportHttpTest(unittest.TestCase):
         self.assertIn('attachment', response.headers['Content-Disposition'])
 
     def test_profile_v1_cannot_silently_use_server_file(self):
-        self.quiz = json.loads(Path('docs/questionario_perfil.json').read_text(encoding='utf-8'))
+        self.quiz = json.loads(Path('tests/fixtures/questionario_perfil.json').read_text(encoding='utf-8'))
         with patch.object(AsyncDatabase, 'importar_questionario') as save:
             response = self.upload()
             self.assertEqual(response.status_code, 400)

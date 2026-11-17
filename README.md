@@ -1,6 +1,6 @@
 # Sistema de questionário
 
-> A execução local e os containers usam FastAPI, Uvicorn e pool assíncrono do Psycopg 3. Consulte [Docker e Compose](docs/docker-render.md) e [a migração para ASGI](docs/fastapi-migration.md).
+> A execução local e os containers usam FastAPI, Uvicorn e pool assíncrono do Psycopg 3. Consulte [Docker e Compose](https://github.com/gabrielgv13/sis-questionario/blob/docs/docs/docker-render.md) e [a migração para ASGI](https://github.com/gabrielgv13/sis-questionario/blob/docs/docs/fastapi-migration.md).
 
 Aplicação com FastAPI, PostgreSQL/Psycopg, Tailwind CSS e painel de análise integrado.
 Permite cadastrar participantes, escolher questionários e responder todas as
@@ -8,7 +8,7 @@ perguntas em um único formulário. Cada navegador pode enviar uma vez por quest
 
 ## Docker e Render
 
-Consulte [o guia Docker, Docker Hub e Render](docs/docker-render.md) para executar
+Consulte [o guia Docker, Docker Hub e Render](https://github.com/gabrielgv13/sis-questionario/blob/docs/docs/docker-render.md) para executar
 as variantes `clean-image` (banco novo sem questionários) e `test-image` (Perfil
 pronto, sem respostas fictícias), configurar a senha administrativa pelo Compose
 e publicar em `gabrielgventura/sis-questionario`. As duas variantes preservam
@@ -72,7 +72,7 @@ de servir a aplicação com `sis_questionario.app:create_app`. Conceda `CONNECT`
 ## Painel administrativo
 
 Para experimentar os gráficos com dados fictícios, execute
-[`docs/popular_perfil.sql`](docs/popular_perfil.sql) no banco da aplicação pelo
+[`docs/popular_perfil.sql`](https://github.com/gabrielgv13/sis-questionario/blob/docs/docs/popular_perfil.sql) no banco da aplicação pelo
 editor SQL do pgAdmin. Prepare as tabelas antes com `uv run sis-questionario-db`.
 O script usa INSERTs para cadastrar o questionário de perfil, suas perguntas e
 alternativas, 120 participantes fictícios e 1.320 respostas. Pode ser reexecutado
@@ -88,14 +88,14 @@ Ela oferece **Análise de respostas** (`/admin/analise`) e **Gerenciar question�
 (`/admin/questionarios`). A análise mantém os gráficos, filtros e exportação de
 resultados. O gerenciamento lista os questionários cadastrados, com busca por
 título ou código e filtro de status. A importação e a exportação JSON estão
-disponíveis no [formato versionado de questionário](docs/formato-questionario.md),
+disponíveis no [formato versionado de questionário](https://github.com/gabrielgv13/sis-questionario/blob/docs/docs/formato-questionario.md),
 com estrutura salva em `questionarios.documento` (JSONB). Há um
-[exemplo completo do Perfil](docs/questionario_perfil.json) e um
-[JSON Schema](docs/questionario.schema.json). A importação não sobrescreve códigos
+[exemplo completo do Perfil](https://github.com/gabrielgv13/sis-questionario/blob/docs/docs/questionario_perfil.json) e um
+[JSON Schema](https://github.com/gabrielgv13/sis-questionario/blob/docs/docs/questionario.schema.json). A importação não sobrescreve códigos
 existentes; para importar uma cópia, altere o código no arquivo. Execute
 `uv run sis-questionario-db` para migrar os questionários existentes antes de usar.
 Se `algoritmo` estiver preenchido, selecione também o JSON de regras solicitado
-pelo formulário. Use [perfil.template.json](docs/perfil.template.json) como modelo.
+pelo formulário. Use [perfil.template.json](https://github.com/gabrielgv13/sis-questionario/blob/docs/docs/perfil.template.json) como modelo.
 O servidor valida e salva os dois arquivos na mesma transação; **Exportar algoritmo**
 permite baixar as regras para reutilizá-las em uma nova importação.
 A exclusão continua apenas como prévia. Sua janela informa que a futura ação
@@ -200,7 +200,7 @@ Questionários importados usam seu próprio arquivo de algoritmo, salvo em
 `questionarios.regras_algoritmo`, inclusive quando se chama `perfil_v1`.
 Pesos e nomes dos perfis são associados aos textos das perguntas e alternativas,
 sem depender dos IDs do banco. A referência
-original está em [perfil-regras-originais.md](docs/perfil-regras-originais.md).
+original está em [perfil-regras-originais.md](https://github.com/gabrielgv13/sis-questionario/blob/docs/docs/perfil-regras-originais.md).
 Interpretações adotadas: Educação dá +10 a Tecnológicos, +20 aos demais exceto
 Otakus; comida dá +5 a todos, e Prato popular soma mais +10 a Tecnológicos.
 Adições e subtrações são cumulativas, inclusive nas duas opções de jogos.
@@ -225,7 +225,6 @@ src/sis_questionario/
     templates/         # Páginas HTML
     static/css/app.css # Tailwind compilado
 assets/tailwind.css    # Fonte dos estilos
-docs/                  # Guia de análise e consultas de exemplo
 tests/                 # Testes de integração
 ```
 
@@ -267,8 +266,8 @@ Envios anteriores ao recurso permanecem com identificador vazio.
 Relatórios externos podem ser criados conectando ao PostgreSQL; não é necessário
 um arquivo Power BI para executar o sistema. Configure a fonte com `DB_HOST`, `DB_PORT`,
 `DB_NAME` e o usuário configurado em `DB_USER`. Informe a senha da sua configuração local.
-Consulte [o guia de relacionamentos e medidas](docs/power-bi.md) e
-[as consultas SQL de exemplo](docs/consultas.md).
+Consulte [o guia de relacionamentos e medidas](https://github.com/gabrielgv13/sis-questionario/blob/docs/docs/power-bi.md) e
+[as consultas SQL de exemplo](https://github.com/gabrielgv13/sis-questionario/blob/docs/docs/consultas.md).
 
 ## Estilos
 
@@ -285,7 +284,7 @@ Durante a edição, use `npm run watch:css`. O fluxo usa o
 ## Testes
 
 O servidor local usa Uvicorn, com um worker por padrão e um pool PostgreSQL
-assíncrono por worker. Consulte [execução e pools](docs/fastapi-migration.md)
+assíncrono por worker. Consulte [execução e pools](https://github.com/gabrielgv13/sis-questionario/blob/docs/docs/fastapi-migration.md)
 para configuração, compatibilidade com Windows e escopo dos containers legados.
 
 Os testes usam um administrador em uma conexão separada para criar schemas e
@@ -301,7 +300,7 @@ de envio, validação, bloqueio por navegador e execução com apenas `SELECT` e
 
 ## Arquivos para o GitHub
 
-Inclua código, `banco.sql`, `.env.example`, lockfiles, CSS compilado, testes e `docs/`.
+Inclua código, `banco.sql`, `.env.example`, lockfiles, CSS compilado, testes e seus fixtures.
 O `.gitignore` exclui `.env`, dependências, caches, logs e prévias locais.
 Os arquivos de build de CSS são preservados para manutenção; Node.js não é
 necessário em tempo de execução. Artefatos externos e duplicatas sem uso foram
@@ -313,3 +312,11 @@ A classificação passa a usar `perfil_v1`. A preparação migra automaticamente
 identificadores antigos nas configurações, documentos JSONB e resultados salvos,
 sem recalcular pontos ou alterar respostas. Arquivos JSON exportados pela versão
 anterior também são normalizados durante a importação. Os pesos permanecem iguais.
+
+## Fluxo de mudanças
+
+Use a branch [docs](https://github.com/gabrielgv13/sis-questionario/tree/docs) para
+documentação, exemplos e experimentos. Para promover código, crie uma branch a partir
+de `features`, traga os commits relevantes de `docs` e abra um PR para `features`.
+Quando os testes passarem, abra um PR de `features` para `master`. Mantenha os
+fixtures usados pelo CI em `tests/fixtures/`.

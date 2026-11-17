@@ -191,7 +191,7 @@ class QuestionariosTest(unittest.TestCase):
     def test_consultas_de_analise(self):
         aluno = db.registrar_aluno('Teste', 'teste@example.com')
         db.registrar_envio(aluno, self.perfil['id_questionario'], self.respostas(), uuid.uuid4())
-        consultas = Path(__file__).resolve().parents[1].joinpath('docs/consultas.md').read_text(encoding='utf-8').split('```sql')[1].split('```')[0]
+        consultas = Path(__file__).resolve().parents[1].joinpath('tests/fixtures/consultas.sql').read_text(encoding='utf-8')
         for consulta in consultas.split(';'):
             if consulta.strip():
                 self.assertTrue(self.conn.execute(consulta).fetchall())
