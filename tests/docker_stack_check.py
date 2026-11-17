@@ -25,8 +25,8 @@ def login(client):
 
 
 def exercise():
-    rules = json.loads((ROOT / 'docs/perfil.template.json').read_text(encoding='utf-8'))
-    quiz = json.loads((ROOT / 'docs/questionario.template.json').read_text(encoding='utf-8'))
+    rules = json.loads((ROOT / 'tests/fixtures/perfil.template.json').read_text(encoding='utf-8'))
+    quiz = json.loads((ROOT / 'tests/fixtures/questionario.template.json').read_text(encoding='utf-8'))
     quiz.update(codigo='docker-validation', algoritmo=rules['version'], ativo=True, exibir_resultado=True)
     with httpx.Client(base_url=CLEAN_URL, timeout=15) as admin, httpx.Client(base_url=CLEAN_URL, timeout=15) as participant:
         csrf = login(admin)

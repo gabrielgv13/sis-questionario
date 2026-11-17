@@ -21,7 +21,6 @@ RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-edi
 FROM build AS validation
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-editable
 COPY tests ./tests
-COPY docs ./docs
 COPY images ./images
 COPY compose.yaml compose.validation.yaml .env.docker.example .dockerignore ./
 RUN useradd --uid 10001 --create-home app

@@ -32,7 +32,7 @@ class StartupUnitTest(unittest.TestCase):
         self.assertEqual(actions, ['prepare', 'profile', 'serve'])
 
     def test_previous_json_identifier_is_normalized(self):
-        path = Path(__file__).resolve().parents[1] / 'docs/questionario_perfil.json'
+        path = Path(__file__).resolve().parents[1] / 'tests/fixtures/questionario_perfil.json'
         import json
         document = json.loads(path.read_text(encoding='utf-8'))
         document['algoritmo'] = VERSAO_ANTERIOR

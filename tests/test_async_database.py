@@ -116,7 +116,7 @@ class AsyncDatabaseTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_profile_import_export_and_settings(self):
         import json
-        document = json.loads(Path('docs/questionario_perfil.json').read_text(encoding='utf-8'))
+        document = json.loads(Path('tests/fixtures/questionario_perfil.json').read_text(encoding='utf-8'))
         from sis_questionario.perfis import REGRAS
         identifier = await self.db.importar_questionario(document, REGRAS)
         exported = await self.db.exportar_questionario(identifier)
