@@ -18,7 +18,7 @@ class StaticAssetsTest(unittest.TestCase):
             ('css/app.css', 'text/css', ('.min-h-screen', '.bg-teal-800', '.max-w-6xl')),
             ('css/admin.css', 'text/css', ('.admin-card',)),
             ('js/admin.js', 'javascript', ('querySelector',)),
-            ('js/admin_questionarios.js', 'javascript', ('querySelector',)),
+            ('js/admin_questionnaires.js', 'javascript', ('querySelector',)),
         ):
             with self.subTest(path=path):
                 response = client.get('/static/' + path)

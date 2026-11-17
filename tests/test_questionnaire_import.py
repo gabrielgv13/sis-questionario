@@ -22,7 +22,7 @@ class QuestionnaireJsonTest(unittest.TestCase):
     def test_valid_roundtrip_bom_and_profile_example(self):
         doc = exemplo()
         self.assertEqual(parse_questionnaire(json.dumps(doc).encode('utf-8-sig')), doc)
-        profile = Path(__file__).resolve().parents[1] / 'tests/fixtures/questionario_perfil.json'
+        profile = Path(__file__).resolve().parents[1] / 'tests/fixtures/profile_questionnaire.json'
         self.assertEqual(len(parse_questionnaire(profile.read_bytes())['perguntas']), 11)
 
     def test_invalid_documents(self):

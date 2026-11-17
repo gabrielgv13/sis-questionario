@@ -20,9 +20,9 @@ class PopularPerfilTest(unittest.TestCase):
         self.addCleanup(self.cleanup_schema)
         self.conn.execute(sql.SQL('SET search_path TO {}').format(sql.Identifier(self.schema)))
         root = Path(__file__).resolve().parents[1]
-        structure = (root / 'src/sis_questionario/banco.sql').read_text(encoding='utf-8')
+        structure = (root / 'src/sis_questionario/schema.sql').read_text(encoding='utf-8')
         self.conn.execute(structure.split('-- INICIO_TABELAS')[1].split('-- FIM_TABELAS')[0])
-        self.script = (root / 'tests/fixtures/popular_perfil.sql').read_text(encoding='utf-8').replace(
+        self.script = (root / 'tests/fixtures/seed_profile_submissions.sql').read_text(encoding='utf-8').replace(
             'SET LOCAL search_path TO public;', f'SET LOCAL search_path TO {self.schema};')
 
     def cleanup_schema(self):

@@ -36,7 +36,7 @@ async def submit_participant_info(request: Request, db: AsyncDatabase = Depends(
     if not await db.get_active_questionnaire(questionnaire_id):
         abort(400, description='Selecione um questionário disponível.')
     if await db.has_device_submitted(request.state.id_dispositivo, questionnaire_id):
-        return await render_template(request, 'ja_respondido.html', status_code=409)
+        return await render_template(request, 'already_submitted.html', status_code=409)
 
     participant_id = await db.register_participant(name, email)
     request.session.clear()
@@ -53,12 +53,12 @@ async def show_questionnaire(request: Request, db: AsyncDatabase = Depends(get_d
     if not request.session.get('aluno_id') or not questionnaire_id:
         return redirect(request, 'index')
     if await db.has_device_submitted(request.state.id_dispositivo, questionnaire_id):
-        return await render_template(request, 'ja_respondido.html', status_code=409)
+        return await render_template(request, 'already_submitted.html', status_code=409)
     questionnaire = await db.get_active_questionnaire(questionnaire_id)
     if not questionnaire:
         return redirect(request, 'index')
     return await render_template(
-        request, 'perguntas.html', questionario=questionnaire, perguntas=questionnaire['perguntas'],
+        request, 'questionnaire.html', questionario=questionnaire, perguntas=questionnaire['perguntas'],
     )
 
 
@@ -89,7 +89,7 @@ async def submit_answers(request: Request, db: AsyncDatabase = Depends(get_datab
             participant_id, questionnaire_id, answers, request.state.id_dispositivo,
         )
     except DuplicateSubmission:
-        return await render_template(request, 'ja_respondido.html', status_code=409)
+        return await render_template(request, 'already_submitted.html', status_code=409)
     except (ValueError, TypeError) as error:
         abort(400, description=str(error))
 
@@ -111,6 +111,6 @@ async def show_submission_result(request: Request, db: AsyncDatabase = Depends(g
     if submission_id:
         result = await db.get_submission_result(submission_id, request.state.id_dispositivo)
     profiles = result.get('profiles', DEFAULT_PROFILE_LABELS) if result else DEFAULT_PROFILE_LABELS
-    response = await render_template(request, 'concluido.html', resultado=result, perfis=profiles)
+    response = await render_template(request, 'submission_complete.html', resultado=result, perfis=profiles)
     response.headers['Cache-Control'] = 'no-store'
     return response

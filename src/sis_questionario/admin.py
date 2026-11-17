@@ -91,7 +91,7 @@ async def analysis(request: Request, db: AsyncDatabase = Depends(get_database)):
 @admin.head('/questionarios', include_in_schema=False)
 @protected
 async def questionnaires(request: Request, db: AsyncDatabase = Depends(get_database)):
-    return await render_template(request, 'admin_questionarios.html', questionarios=await db.list_all_questionnaires(), token=csrf_token(request))
+    return await render_template(request, 'admin_questionnaires.html', questionarios=await db.list_all_questionnaires(), token=csrf_token(request))
 
 
 @admin.post('/api/questionnaires/import', name='admin.import_questionnaire')
@@ -203,7 +203,7 @@ async def settings(request: Request, db: AsyncDatabase = Depends(get_database)):
 @admin.post('/api/export', name='admin.export')
 @protected
 async def export(request: Request, db: AsyncDatabase = Depends(get_database)):
-    from .exportacao import preparar_async, gerar_csv, gerar_json, gerar_pdf
+    from .report_exports import preparar_async, gerar_csv, gerar_json, gerar_pdf
     check_csrf(request, request.headers.get('X-CSRF-Token'))
     data = await read_json(request)
     try:

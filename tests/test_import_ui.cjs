@@ -23,7 +23,7 @@ function page() {
     fetch: async () => ({ok: false, status: 400, json: async () => ({error: 'Regras incompatíveis'})}),
     setTimeout, URL, console,
   });
-  vm.runInContext(fs.readFileSync('src/sis_questionario/static/js/admin_questionarios.js', 'utf8'), context);
+  vm.runInContext(fs.readFileSync('src/sis_questionario/static/js/admin_questionnaires.js', 'utf8'), context);
   const button = {dataset: {managementAction: 'import'}, closest: () => null};
   element('#questionnaire-manager').events.click({target: {closest: () => button}});
   async function select(algorithm) {
@@ -40,7 +40,7 @@ test('algorithm identifier requires second file before import is enabled', async
   assert.equal(element('#management-algorithm-fields').hidden, false);
   assert.equal(element('#management-confirm').disabled, true);
   assert.match(element('#management-algorithm-description').textContent, /perfil_v1/);
-  element('#algorithm-file').files = [{name: 'perfil_v1.json', size: 100}];
+  element('#algorithm-file').files = [{name: 'profile_scoring_v1.json', size: 100}];
   element('#algorithm-file').events.change();
   assert.equal(element('#management-confirm').disabled, false);
   await element('#management-confirm').events.click();

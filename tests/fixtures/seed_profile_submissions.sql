@@ -68,7 +68,7 @@ BEGIN
           AND (p.id_pergunta IS NULL OR f.ordem IS NULL OR p.enunciado <> f.enunciado
                OR ARRAY(SELECT o.texto FROM opcoes o WHERE o.id_pergunta = p.id_pergunta ORDER BY o.ordem) <> f.alternativas)
     ) THEN
-        RAISE EXCEPTION 'O questionario perfil difere de perguntas.json. Nenhum dado foi gravado.';
+        RAISE EXCEPTION 'O questionario perfil difere de profile_questions.json. Nenhum dado foi gravado.';
     END IF;
 END $$;
 
@@ -81,7 +81,7 @@ CREATE TEMP TABLE perfil_envios_exemplo (
 -- Cada linha e um participante; cada numero no array indica a ordem da
 -- alternativa escolhida em uma das 11 perguntas. Os perfis possuem correlacoes
 -- ficticias (ex.: interesse por tecnologia, artes ou esportes), com variacao.
--- Resultados versionados gerados de src/sis_questionario/perfil_v1.json.
+-- Resultados versionados gerados de src/sis_questionario/profile_scoring_v1.json.
 INSERT INTO perfil_envios_exemplo (numero, escolhas, resultado) VALUES
     (1, ARRAY[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], '{"version":"perfil_v1","scores":{"politico":115,"identitario":115,"tecnologico":25,"esportes":140,"otaku":75},"strong":{"politico":4,"identitario":4,"tecnologico":1,"esportes":6,"otaku":2},"winners":["esportes"],"category":"esportes"}'::jsonb),
     (2, ARRAY[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], '{"version":"perfil_v1","scores":{"politico":115,"identitario":105,"tecnologico":90,"esportes":115,"otaku":100},"strong":{"politico":3,"identitario":3,"tecnologico":2,"esportes":4,"otaku":3},"winners":["esportes"],"category":"esportes"}'::jsonb),

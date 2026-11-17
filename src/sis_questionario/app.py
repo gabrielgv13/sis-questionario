@@ -47,7 +47,7 @@ def create_app(inicializar=False):
     async def http_error(request: Request, error: HTTPException):
         if error.status_code in (400, 404):
             return await render_template(
-                request, 'erro.html', status_code=error.status_code, erro=error,
+                request, 'error.html', status_code=error.status_code, erro=error,
                 titulo='Confira seu formulário' if error.status_code == 400 else 'Página não encontrada',
                 descricao=error.detail if error.status_code == 400 else
                 'Este endereço não está disponível. Volte à página inicial para continuar.',

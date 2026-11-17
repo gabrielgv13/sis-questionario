@@ -29,7 +29,7 @@ class AsyncDatabaseTest(unittest.IsolatedAsyncioTestCase):
         await self.owner.execute(sql.SQL('CREATE SCHEMA {}').format(sql.Identifier(self.schema)))
         self.addAsyncCleanup(self.drop_schema)
         await self.owner.execute(sql.SQL('SET search_path TO {}').format(sql.Identifier(self.schema)))
-        script = Path('src/sis_questionario/banco.sql').read_text(encoding='utf-8')
+        script = Path('src/sis_questionario/schema.sql').read_text(encoding='utf-8')
         await self.owner.execute(script.split('-- INICIO_TABELAS')[1].split('-- FIM_TABELAS')[0])
         self.pool = AsyncConnectionPool(
             os.environ['TEST_DATABASE_URL'], min_size=0, max_size=2, timeout=.3, open=False,
@@ -116,7 +116,7 @@ class AsyncDatabaseTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_profile_import_export_and_settings(self):
         import json
-        document = json.loads(Path('tests/fixtures/questionario_perfil.json').read_text(encoding='utf-8'))
+        document = json.loads(Path('tests/fixtures/profile_questionnaire.json').read_text(encoding='utf-8'))
         from sis_questionario.profile_scoring import DEFAULT_SCORING_RULES
         identifier = await self.db.import_questionnaire(document, DEFAULT_SCORING_RULES)
         exported = await self.db.export_questionnaire(identifier)

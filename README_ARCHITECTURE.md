@@ -25,9 +25,9 @@ The main source files under `src/sis_questionario/` are:
 | `server.py` | Uvicorn launcher and process/proxy configuration |
 | `profile_scoring.py` / `scoring_rules.py` | Classification and validation of imported scoring rules |
 | `questionnaire_import.py` | Validates questionnaire JSON imports |
-| `exportacao.py` | Generates JSON, CSV, and ReportLab PDF reports |
+| `report_exports.py` | Generates JSON, CSV, and ReportLab PDF reports |
 | `config.py` | Loads `.env` and database connection settings |
-| `database_setup.py` / `banco.sql` | Creates and updates the database structure |
+| `database_setup.py` / `schema.sql` | Creates and updates the database structure |
 | `provision.py` | Deployment provisioning and restricted database account |
 | `templates/` / `static/` | Server-rendered Jinja pages, CSS, and JavaScript |
 

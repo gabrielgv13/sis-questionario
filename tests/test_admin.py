@@ -143,7 +143,7 @@ class AdminAggregationTest(unittest.TestCase):
         self.conn.execute(sql.SQL('CREATE SCHEMA {}').format(sql.Identifier(self.schema)))
         self.addCleanup(self.cleanup_schema)
         self.conn.execute(sql.SQL('SET search_path TO {}').format(sql.Identifier(self.schema)))
-        script = Path(db.__file__).with_name('banco.sql').read_text(encoding='utf-8')
+        script = Path(db.__file__).with_name('schema.sql').read_text(encoding='utf-8')
         self.conn.execute(script.split('-- INICIO_TABELAS')[1].split('-- FIM_TABELAS')[0])
         self.conn.execute("INSERT INTO alunos VALUES (1, 'Test', 'test@example.com')")
         self.conn.execute("INSERT INTO questionarios VALUES (1, 'one', 'One', true), (2, 'two', 'Two', false)")

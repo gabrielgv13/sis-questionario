@@ -32,7 +32,7 @@ class StartupUnitTest(unittest.TestCase):
         self.assertEqual(actions, ['prepare', 'profile', 'serve'])
 
     def test_previous_json_identifier_is_normalized(self):
-        path = Path(__file__).resolve().parents[1] / 'tests/fixtures/questionario_perfil.json'
+        path = Path(__file__).resolve().parents[1] / 'tests/fixtures/profile_questionnaire.json'
         import json
         document = json.loads(path.read_text(encoding='utf-8'))
         document['algoritmo'] = LEGACY_SCORING_VERSION
@@ -48,7 +48,7 @@ class StartupDatabaseTest(unittest.TestCase):
         self.conn.execute(sql.SQL('CREATE SCHEMA {}').format(sql.Identifier(self.schema)))
         self.addCleanup(self.cleanup_schema)
         self.conn.execute(sql.SQL('SET search_path TO {}').format(sql.Identifier(self.schema)))
-        script = Path(db.__file__).with_name('banco.sql').read_text(encoding='utf-8')
+        script = Path(db.__file__).with_name('schema.sql').read_text(encoding='utf-8')
         self.structure = script.split('-- INICIO_TABELAS')[1].split('-- FIM_TABELAS')[0]
 
         @contextmanager

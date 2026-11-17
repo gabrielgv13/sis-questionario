@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 
-DEFAULT_SCORING_RULES = json.loads(Path(__file__).with_name('perfil_v1.json').read_text(encoding='utf-8'))
+DEFAULT_SCORING_RULES = json.loads(Path(__file__).with_name('profile_scoring_v1.json').read_text(encoding='utf-8'))
 DEFAULT_PROFILE_LABELS = DEFAULT_SCORING_RULES['profiles']
 SCORING_VERSION = DEFAULT_SCORING_RULES['version']
 LEGACY_SCORING_VERSION = 'perfil_sesi_v1'

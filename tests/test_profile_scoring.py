@@ -7,7 +7,7 @@ from sis_questionario import profile_scoring
 
 class PerfilRulesTest(unittest.TestCase):
     def test_all_questions_and_120_options_have_rules(self):
-        source = json.loads(Path(profile_scoring.__file__).with_name('perguntas.json').read_text(encoding='utf-8'))
+        source = json.loads(Path(profile_scoring.__file__).with_name('profile_questions.json').read_text(encoding='utf-8'))
         self.assertEqual(len(profile_scoring.DEFAULT_SCORING_RULES['questions']), 11)
         self.assertEqual(sum(len(q['options']) for q in profile_scoring.DEFAULT_SCORING_RULES['questions']), 120)
         for question, rule in zip(source, profile_scoring.DEFAULT_SCORING_RULES['questions'], strict=True):

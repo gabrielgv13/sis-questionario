@@ -57,7 +57,7 @@ credenciais próprias e uma `SECRET_KEY` estável e aleatória:
 
 ## Preparação do banco
 
-O setup cria o banco se necessário e aplica `src/sis_questionario/banco.sql`
+O setup cria o banco se necessário e aplica `src/sis_questionario/schema.sql`
 em uma transação. Reexecutar preserva os registros e reaplica a estrutura.
 O SQL é SQL PostgreSQL comum, sem comandos específicos do `psql`.
 O usuário do setup precisa poder criar o banco e suas tabelas.
@@ -95,7 +95,7 @@ com estrutura salva em `questionarios.documento` (JSONB). Há um
 existentes; para importar uma cópia, altere o código no arquivo. Execute
 `uv run sis-questionario-db` para migrar os questionários existentes antes de usar.
 Se `algoritmo` estiver preenchido, selecione também o JSON de regras solicitado
-pelo formulário. Use [perfil.template.json](https://github.com/gabrielgv13/sis-questionario/blob/docs/docs/perfil.template.json) como modelo.
+pelo formulário. Use [o modelo de regras](https://github.com/gabrielgv13/sis-questionario/blob/docs/docs/perfil.template.json) como modelo.
 O servidor valida e salva os dois arquivos na mesma transação; **Exportar algoritmo**
 permite baixar as regras para reutilizá-las em uma nova importação.
 A exclusão continua apenas como prévia. Sua janela informa que a futura ação
@@ -195,7 +195,7 @@ em **Perfil misto**. Envios sem resultado salvo aparecem em **Sem classificaçã
 o aplicativo não os recalcula automaticamente. O script de exemplos agora inclui
 a classificação e pode preencher resultados ausentes dos seus próprios envios.
 
-Os pesos do Perfil original estão em `src/sis_questionario/perfil_v1.json`.
+Os pesos do Perfil original estão em `src/sis_questionario/profile_scoring_v1.json`.
 Questionários importados usam seu próprio arquivo de algoritmo, salvo em
 `questionarios.regras_algoritmo`, inclusive quando se chama `perfil_v1`.
 Pesos e nomes dos perfis são associados aos textos das perguntas e alternativas,
@@ -219,9 +219,9 @@ src/sis_questionario/
     sync_database.py          # Consultas e gravação transacional
     config.py          # Leitura do .env
     database_setup.py        # Execução do SQL pelo administrador
-    banco.sql          # Único arquivo SQL do projeto
-    perguntas.json     # Carga opcional do Questionário de Perfil
-    perfil_v1.json     # Pesos versionados da classificação
+    schema.sql          # Único arquivo SQL do projeto
+    profile_questions.json     # Carga opcional do Questionário de Perfil
+    profile_scoring_v1.json     # Pesos versionados da classificação
     templates/         # Páginas HTML
     static/css/app.css # Tailwind compilado
 assets/tailwind.css    # Fonte dos estilos
@@ -300,7 +300,7 @@ de envio, validação, bloqueio por navegador e execução com apenas `SELECT` e
 
 ## Arquivos para o GitHub
 
-Inclua código, `banco.sql`, `.env.example`, lockfiles, CSS compilado, testes e seus fixtures.
+Inclua código, `schema.sql`, `.env.example`, lockfiles, CSS compilado, testes e seus fixtures.
 O `.gitignore` exclui `.env`, dependências, caches, logs e prévias locais.
 Os arquivos de build de CSS são preservados para manutenção; Node.js não é
 necessário em tempo de execução. Artefatos externos e duplicatas sem uso foram

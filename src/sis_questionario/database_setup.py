@@ -23,7 +23,7 @@ def main():
     with psycopg.connect(**connection_options, dbname='postgres', autocommit=True) as conn:
         if not conn.execute('SELECT 1 FROM pg_database WHERE datname = %s', (database_name,)).fetchone():
             conn.execute(sql.SQL('CREATE DATABASE {}').format(sql.Identifier(database_name)))
-    script = Path(__file__).with_name('banco.sql').read_text(encoding='utf-8')
+    script = Path(__file__).with_name('schema.sql').read_text(encoding='utf-8')
     with psycopg.connect(**connection_options, dbname=database_name) as conn:
         conn.execute(script)
     print(f'Banco {database_name} preparado.')

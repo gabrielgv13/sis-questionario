@@ -7,7 +7,7 @@ import json
 import unittest
 from unittest.mock import patch
 
-from sis_questionario import exportacao as exports
+from sis_questionario import report_exports as exports
 from sis_questionario.app import create_app
 from sis_questionario.async_database import AsyncDatabase
 

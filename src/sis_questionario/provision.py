@@ -80,7 +80,7 @@ def provisionar():
                     conn.execute(sql.SQL('CREATE ROLE {} LOGIN NOINHERIT NOSUPERUSER NOCREATEDB '
                                          'NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD {}')
                                  .format(role, sql.Literal(senha)))
-                conn.execute(Path(__file__).with_name('banco.sql').read_text(encoding='utf-8'))
+                conn.execute(Path(__file__).with_name('schema.sql').read_text(encoding='utf-8'))
                 conn.execute('REVOKE CREATE ON SCHEMA public FROM PUBLIC')
                 conn.execute(sql.SQL('REVOKE CREATE ON SCHEMA public FROM {}').format(role))
                 conn.execute(sql.SQL('REVOKE CREATE ON DATABASE {} FROM {}')

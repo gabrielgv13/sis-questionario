@@ -74,7 +74,7 @@ def export_questionnaire(questionnaire_id):
 
 
 def seed_profile_questionnaire():
-    questions = json.loads(Path(__file__).with_name('perguntas.json').read_text(encoding='utf-8'))
+    questions = json.loads(Path(__file__).with_name('profile_questions.json').read_text(encoding='utf-8'))
     register_questionnaire('perfil', 'Questionário de perfil', questions)
 
 

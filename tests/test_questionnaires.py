@@ -49,7 +49,7 @@ class QuestionariosTest(unittest.TestCase):
             sql.Identifier(tabela))).fetchone()['total']
 
     def criar_tabelas(self):
-        script = Path(db.__file__).with_name('banco.sql').read_text(encoding='utf-8')
+        script = Path(db.__file__).with_name('schema.sql').read_text(encoding='utf-8')
         estrutura = script.split('-- INICIO_TABELAS')[1].split('-- FIM_TABELAS')[0]
         self.conn.execute(estrutura)
 
@@ -191,7 +191,7 @@ class QuestionariosTest(unittest.TestCase):
     def test_consultas_de_analise(self):
         aluno = db.register_participant('Teste', 'teste@example.com')
         db.save_submission(aluno, self.perfil['id_questionario'], self.respostas(), uuid.uuid4())
-        consultas = Path(__file__).resolve().parents[1].joinpath('tests/fixtures/consultas.sql').read_text(encoding='utf-8')
+        consultas = Path(__file__).resolve().parents[1].joinpath('tests/fixtures/queries.sql').read_text(encoding='utf-8')
         for consulta in consultas.split(';'):
             if consulta.strip():
                 self.assertTrue(self.conn.execute(consulta).fetchall())

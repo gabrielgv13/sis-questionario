@@ -15,8 +15,8 @@ from sis_questionario.questionnaire_import import MAX_BYTES, validate_questionna
 
 
 def example_questionnaire_and_rules():
-    quiz = json.loads(Path('tests/fixtures/questionario.template.json').read_text(encoding='utf-8'))
-    rules = json.loads(Path('tests/fixtures/perfil.template.json').read_text(encoding='utf-8'))
+    quiz = json.loads(Path('tests/fixtures/questionnaire.template.json').read_text(encoding='utf-8'))
+    rules = json.loads(Path('tests/fixtures/scoring_rules.template.json').read_text(encoding='utf-8'))
     quiz.update(algoritmo=rules['version'], exibir_resultado=True, ativo=True)
     return quiz, rules
 
@@ -33,10 +33,10 @@ class AlgorithmValidationTest(unittest.TestCase):
         self.assertEqual(result['version'], quiz['algoritmo'])
 
     def test_embedded_profile_still_requires_explicit_import_file(self):
-        quiz = json.loads(Path('tests/fixtures/questionario_perfil.json').read_text(encoding='utf-8'))
+        quiz = json.loads(Path('tests/fixtures/profile_questionnaire.json').read_text(encoding='utf-8'))
         with self.assertRaisesRegex(ValueError, 'Selecione'):
             resolve_import_rules(quiz, None)
-        rules = Path('src/sis_questionario/perfil_v1.json').read_bytes()
+        rules = Path('src/sis_questionario/profile_scoring_v1.json').read_bytes()
         self.assertEqual(parse_scoring_rules(rules, quiz)['version'], 'perfil_v1')
 
     def test_invalid_version_profiles_questions_options_and_numbers(self):
@@ -105,7 +105,7 @@ class AlgorithmImportHttpTest(unittest.TestCase):
         self.assertIn('attachment', response.headers['Content-Disposition'])
 
     def test_profile_v1_cannot_silently_use_server_file(self):
-        self.quiz = json.loads(Path('tests/fixtures/questionario_perfil.json').read_text(encoding='utf-8'))
+        self.quiz = json.loads(Path('tests/fixtures/profile_questionnaire.json').read_text(encoding='utf-8'))
         with patch.object(AsyncDatabase, 'import_questionnaire') as save:
             response = self.upload()
             self.assertEqual(response.status_code, 400)
