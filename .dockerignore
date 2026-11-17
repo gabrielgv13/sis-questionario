@@ -2,6 +2,10 @@
 !pyproject.toml
 !uv.lock
 !README.md
+!package.json
+!package-lock.json
+!assets/
+!assets/**
 !src/
 !src/**
 !images/

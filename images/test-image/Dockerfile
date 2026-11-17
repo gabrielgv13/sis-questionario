@@ -1,4 +1,12 @@
 # syntax=docker/dockerfile:1
+FROM node:24-bookworm-slim AS styles
+WORKDIR /build
+COPY package.json package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm npm ci
+COPY assets ./assets
+COPY src ./src
+RUN npm run build:css
+
 FROM python:3.14-slim AS build
 COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /usr/local/bin/uv
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 UV_LINK_MODE=copy PATH="/app/.venv/bin:$PATH"
@@ -6,6 +14,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock README.md ./
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-install-project --no-editable
 COPY src ./src
+COPY --from=styles /build/src/sis_questionario/static/css/app.css ./src/sis_questionario/static/css/app.css
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-editable
 
 # Validation has its own environment; development packages never enter runtime.

@@ -163,6 +163,20 @@ restaurar backup é uma operação separada. Não remova os volumes.
 
 ## Render
 
+### CSS nas imagens
+
+As duas receitas compilam o Tailwind em uma etapa Node separada, usando
+`npm ci` e `npm run build:css`, antes de instalar o pacote Python. Node e
+`node_modules` ficam fora da imagem runtime. As fontes em `assets/`, os
+templates e os lockfiles entram no contexto de build.
+
+O CI verifica o tipo de conteúdo e seletores do CSS servido pelas duas imagens,
+além dos scripts administrativos e links de estilo do login. Se o CSS ainda
+não carregar no Render, confira a URL solicitada no navegador: links HTTP em
+uma página HTTPS indicam que o esquema encaminhado pelo proxy não foi aceito.
+Nesse caso, confira `TRUST_PROXY` e `FORWARDED_ALLOW_IPS`. Um erro 404 exige
+conferir a tag/digest implantado e o conteúdo de `/static` na imagem.
+
 O `render.yaml` mantém os planos, a região e o PostgreSQL existentes. O entrypoint
 da nova imagem já inicia Uvicorn; o pré-deploy permanece
 `/app/.venv/bin/sis-questionario-provision` e o healthcheck permanece `/healthz`.

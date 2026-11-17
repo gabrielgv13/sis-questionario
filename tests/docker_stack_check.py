@@ -71,8 +71,20 @@ def verify():
     for url in (CLEAN_URL, PROFILE_URL):
         with httpx.Client(base_url=url, timeout=15) as client:
             assert client.get('/healthz').json() == {'status': 'ok'}
-            assert client.get('/static/css/app.css').status_code == 200
-            assert client.get('/static/js/admin_questionarios.js').status_code == 200
+            for path, mime, markers in (
+                ('css/app.css', 'text/css', ('.min-h-screen', '.bg-teal-800', '.max-w-6xl')),
+                ('css/admin.css', 'text/css', ('.admin-card',)),
+                ('js/admin.js', 'javascript', ('querySelector',)),
+                ('js/admin_questionarios.js', 'javascript', ('querySelector',)),
+            ):
+                asset = client.get('/static/' + path)
+                assert asset.status_code == 200, (url, path, asset.status_code)
+                assert mime in asset.headers.get('content-type', ''), (url, path)
+                assert all(marker in asset.text for marker in markers), (url, path)
+            page = client.get('/admin/login')
+            assert page.status_code == 200
+            for path in ('css/app.css', 'css/admin.css'):
+                assert f'{url}/static/{path}' in page.text, (url, path)
     with httpx.Client(base_url=CLEAN_URL, cookies=state['cookies'], timeout=15) as client:
         result = client.get('/concluido')
         assert result.status_code == 200
