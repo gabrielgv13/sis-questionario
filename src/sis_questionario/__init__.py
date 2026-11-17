@@ -1,4 +1,16 @@
 def main() -> None:
-    from .app import create_app
+    from .server import serve
+    from .setup_db import main as preparar_banco
 
-    create_app().run(host="127.0.0.1", port=5000)
+    preparar_banco()
+    serve()
+
+
+def main_perfil() -> None:
+    from .server import serve
+    from .bd_exec import inicializar_banco
+    from .setup_db import main as preparar_banco
+
+    preparar_banco()
+    inicializar_banco()
+    serve()

@@ -1,4 +1,4 @@
-# Quiz Jogos SESI — Filtro de classificação por perfis
+# Quiz de Perfil — Filtro de classificação por perfis
 
 ## Regra do algoritmo
 

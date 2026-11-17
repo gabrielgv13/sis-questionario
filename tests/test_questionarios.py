@@ -1,3 +1,5 @@
+from fastapi.testclient import TestClient
+from http_helpers import session_transaction, use_sync_transaction_fixture
 import os
 import unittest
 import uuid
@@ -30,9 +32,10 @@ class QuestionariosTest(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
         self.criar_tabelas()
+        db.inicializar_banco()
         self.app = create_app()
-        self.app.testing = True
-        self.client = self.app.test_client()
+        use_sync_transaction_fixture(self.app)
+        self.client = TestClient(self.app, follow_redirects=False, base_url='https://testserver')
         self.perfil = db.listar_questionarios()[0]
 
     def novo_schema(self):
@@ -89,7 +92,7 @@ class QuestionariosTest(unittest.TestCase):
         })
 
     def formulario(self):
-        with self.client.session_transaction() as sessao:
+        with session_transaction(self.client) as sessao:
             token = sessao['token_formulario']
         return {'token_formulario': token,
                 **{f'pergunta_{p}': str(o) for p, o in self.respostas().items()}}
@@ -110,13 +113,13 @@ class QuestionariosTest(unittest.TestCase):
         self.assertEqual(self.client.get('/').status_code, 200)
         self.assertEqual(self.client.get('/pesquisa-perguntas').status_code, 302)
         self.assertEqual(self.cadastrar_participante().status_code, 302)
-        pagina = self.client.get('/pesquisa-perguntas').get_data(as_text=True)
+        pagina = self.client.get('/pesquisa-perguntas').text
         self.assertEqual(pagina.count('<fieldset '), 11)
         self.assertEqual(pagina.count('<form '), 1)
         dados = self.formulario()
         resposta = self.client.post('/submit-pesquisa', data=dados, follow_redirects=True)
         self.assertEqual(resposta.status_code, 200)
-        self.assertIn('foram salvas', resposta.get_data(as_text=True))
+        self.assertIn('foram salvas', resposta.text)
         self.assertEqual(self.quantidade('envios'), 1)
         self.assertEqual(self.quantidade('respostas'), 11)
         self.client.post('/submit-pesquisa', data=dados)
@@ -196,22 +199,22 @@ class QuestionariosTest(unittest.TestCase):
     def test_mesmo_navegador_nao_repete_com_outro_email(self):
         self.cadastrar_participante()
         dados = self.formulario()
-        with self.client.session_transaction() as sessao:
+        with session_transaction(self.client) as sessao:
             sessao_anterior = dict(sessao)
         self.assertEqual(self.client.post('/submit-pesquisa', data=dados).status_code, 302)
-        cookie = self.client.get_cookie('id_dispositivo')
-        self.assertTrue(cookie.http_only)
-        self.assertEqual(cookie.same_site, 'Lax')
+        cookie = next(c for c in self.client.cookies.jar if c.name == 'id_dispositivo')
+        self.assertTrue(cookie.has_nonstandard_attr('HttpOnly'))
+        self.assertEqual(cookie.get_nonstandard_attr('SameSite').lower(), 'lax')
         self.assertIsNotNone(cookie.expires)
         tentativa = self.client.post('/submit-info', data={
             'name': 'Outra pessoa', 'email': 'outro@example.com',
             'questionario_id': self.perfil['id_questionario'],
         })
         self.assertEqual(tentativa.status_code, 409)
-        self.assertIn('Questionário já respondido', tentativa.get_data(as_text=True))
+        self.assertIn('Questionário já respondido', tentativa.text)
         self.assertEqual(self.quantidade('alunos'), 1)
         # Uma aba com formulário antigo também recebe bloqueio na gravação.
-        with self.client.session_transaction() as sessao:
+        with session_transaction(self.client) as sessao:
             sessao.update(sessao_anterior)
         self.assertEqual(self.client.get('/pesquisa-perguntas').status_code, 409)
         self.assertEqual(self.client.post('/submit-pesquisa', data=dados).status_code, 409)
@@ -221,13 +224,13 @@ class QuestionariosTest(unittest.TestCase):
     def test_cookie_persiste_apos_reiniciar_app(self):
         self.cadastrar_participante()
         self.client.post('/submit-pesquisa', data=self.formulario())
-        identificador = self.client.get_cookie('id_dispositivo').value
+        identificador = self.client.cookies.get('id_dispositivo')
         novo_app = create_app(inicializar=False)
-        novo_app.testing = True
-        cliente = novo_app.test_client()
-        cliente.set_cookie('id_dispositivo', identificador)
+        use_sync_transaction_fixture(novo_app)
+        cliente = TestClient(novo_app, follow_redirects=False, base_url='https://testserver')
+        cliente.cookies.set('id_dispositivo', identificador)
         cliente.get('/')
-        self.assertEqual(cliente.get_cookie('id_dispositivo').value, identificador)
+        self.assertEqual(cliente.cookies.get('id_dispositivo'), identificador)
         resultado = cliente.post('/submit-info', data={
             'name': 'Teste', 'email': 'teste@example.com',
             'questionario_id': self.perfil['id_questionario'],
@@ -237,15 +240,15 @@ class QuestionariosTest(unittest.TestCase):
     def test_outro_navegador_pode_responder_na_mesma_rede(self):
         self.cadastrar_participante()
         self.client.post('/submit-pesquisa', data=self.formulario())
-        outro = self.app.test_client()
+        outro = TestClient(self.app, follow_redirects=False, base_url='https://testserver')
         outro.get('/')
-        self.assertNotEqual(outro.get_cookie('id_dispositivo').value,
-                            self.client.get_cookie('id_dispositivo').value)
+        self.assertNotEqual(outro.cookies.get('id_dispositivo'),
+                            self.client.cookies.get('id_dispositivo'))
         outro.post('/submit-info', data={
             'name': 'Aluno 2', 'email': 'aluno2@example.com',
             'questionario_id': self.perfil['id_questionario'],
         })
-        with outro.session_transaction() as sessao:
+        with session_transaction(outro) as sessao:
             token = sessao['token_formulario']
         dados = {'token_formulario': token,
                  **{f'pergunta_{p}': str(o) for p, o in self.respostas().items()}}
@@ -269,8 +272,9 @@ class QuestionariosTest(unittest.TestCase):
         self.assertEqual(self.quantidade('envios'), 2)
 
     def test_post_sem_cookie_exige_abrir_pagina(self):
-        cliente = self.app.test_client(use_cookies=False)
+        cliente = TestClient(self.app, follow_redirects=False, base_url='https://testserver')
         cliente.get('/')
+        cliente.cookies.clear()
         resultado = cliente.post('/submit-info', data={
             'name': 'Teste', 'email': 'teste@example.com',
             'questionario_id': self.perfil['id_questionario'],
@@ -281,19 +285,19 @@ class QuestionariosTest(unittest.TestCase):
     def test_resultado_persistido_devolutiva_e_privacidade(self):
         self.cadastrar_participante()
         response = self.client.post('/submit-pesquisa', data=self.formulario(), follow_redirects=True)
-        self.assertIn('Seu perfil:'.encode(), response.data)
-        self.assertIn(b'140 pontos', response.data)
-        with self.client.session_transaction() as sessao:
+        self.assertIn('Seu perfil:'.encode(), response.content)
+        self.assertIn(b'140 pontos', response.content)
+        with session_transaction(self.client) as sessao:
             envio = sessao['envio_id']
         stored = self.conn.execute('SELECT resultado FROM envios WHERE id_envio = %s', (envio,)).fetchone()['resultado']
         self.assertEqual(stored['category'], 'esportes')
-        self.assertEqual(stored['version'], 'perfil_sesi_v1')
-        self.assertIn(b'140 pontos', self.client.get('/concluido').data)
+        self.assertEqual(stored['version'], 'perfil_v1')
+        self.assertIn(b'140 pontos', self.client.get('/concluido').content)
         self.assertIsNone(db.carregar_resultado(envio, uuid.uuid4()))
-        other = self.app.test_client()
+        other = TestClient(self.app, follow_redirects=False, base_url='https://testserver')
         self.assertEqual(other.get('/concluido').status_code, 302)
         db.configurar_devolutiva(self.perfil['id_questionario'], False)
-        self.assertNotIn(b'Seu perfil:', self.client.get('/concluido').data)
+        self.assertNotIn(b'Seu perfil:', self.client.get('/concluido').content)
         self.criar_tabelas()
         self.assertFalse(db.carregar_questionario(self.perfil['id_questionario'])['exibir_resultado'])
         self.assertEqual(self.conn.execute('SELECT resultado FROM envios WHERE id_envio = %s', (envio,)).fetchone()['resultado'], stored)
@@ -325,8 +329,63 @@ class QuestionariosTest(unittest.TestCase):
         self.criar_tabelas()
         quiz = db.carregar_questionario(self.perfil['id_questionario'])
         self.assertTrue(quiz['exibir_resultado'])
-        self.assertEqual(quiz['algoritmo'], 'perfil_sesi_v1')
+        self.assertEqual(quiz['algoritmo'], 'perfil_v1')
         self.assertIsNone(self.conn.execute('SELECT resultado FROM envios').fetchone()['resultado'])
+
+    def test_import_export_json_armazenado_e_duplicidade(self):
+        doc = dict(schema_version=1, codigo='importado', titulo='Importado', ativo=False,
+                   algoritmo=None, exibir_resultado=False,
+                   perguntas=[dict(enunciado='Pergunta?', opcoes=['B', 'A'])])
+        identifier = db.importar_questionario(doc)
+        stored = self.conn.execute('SELECT documento FROM questionarios WHERE id_questionario = %s', (identifier,)).fetchone()['documento']
+        self.assertEqual(stored, doc)
+        self.assertEqual(db.exportar_questionario(identifier), doc)
+        before = [self.quantidade(table) for table in ('questionarios','perguntas','opcoes')]
+        with self.assertRaises(db.QuestionarioExistente):
+            db.importar_questionario(doc)
+        self.assertEqual([self.quantidade(table) for table in ('questionarios','perguntas','opcoes')], before)
+        self.assertNotIn(identifier, [q['id_questionario'] for q in db.listar_questionarios()])
+        doc['codigo'] = 'copia'
+        second = db.importar_questionario(doc)
+        self.assertEqual(db.exportar_questionario(second), doc)
+
+    def test_exporta_perfil_com_configuracao_atual_e_migra_documentos(self):
+        identifier = self.perfil['id_questionario']
+        original = db.exportar_questionario(identifier)
+        self.assertEqual(len(original['perguntas']), 11)
+        self.assertEqual(original['algoritmo'], 'perfil_v1')
+        db.configurar_devolutiva(identifier, False)
+        self.assertFalse(db.exportar_questionario(identifier)['exibir_resultado'])
+        self.assertFalse(self.conn.execute('SELECT documento FROM questionarios WHERE id_questionario = %s', (identifier,)).fetchone()['documento']['exibir_resultado'])
+        self.conn.execute('ALTER TABLE questionarios DROP COLUMN documento')
+        self.criar_tabelas()
+        migrated = db.exportar_questionario(identifier)
+        self.assertEqual(migrated['perguntas'], original['perguntas'])
+        self.assertFalse(migrated['exibir_resultado'])
+
+    def test_importa_copia_do_perfil_e_classifica_sem_depender_dos_ids(self):
+        documento = db.exportar_questionario(self.perfil['id_questionario'])
+        documento['codigo'] = 'perfil-copia'
+        identifier = db.importar_questionario(documento, db.exportar_algoritmo(self.perfil['id_questionario']))
+        self.assertNotEqual(identifier, self.perfil['id_questionario'])
+        aluno = db.registrar_aluno('Teste', 'copia@example.com')
+        envio = db.registrar_envio(aluno, identifier, self.respostas(identifier), uuid.uuid4())
+        resultado = self.conn.execute('SELECT resultado FROM envios WHERE id_envio = %s', (envio,)).fetchone()['resultado']
+        self.assertEqual(resultado['scores']['esportes'], 140)
+        self.assertEqual(resultado['version'], 'perfil_v1')
+
+    def test_importacao_reverte_tudo_se_insercao_falha(self):
+        doc = dict(schema_version=1, codigo='falha', titulo='Falha', ativo=True,
+                   algoritmo=None, exibir_resultado=False,
+                   perguntas=[dict(enunciado='Pergunta?', opcoes=['A','B'])])
+        before = self.quantidade('questionarios')
+        self.conn.execute('''CREATE FUNCTION recusar_opcao() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN RAISE EXCEPTION 'Falha simulada'; END $$''')
+        self.conn.execute('CREATE TRIGGER recusar_opcao BEFORE INSERT ON opcoes FOR EACH ROW EXECUTE FUNCTION recusar_opcao()')
+        with self.assertRaises(psycopg.Error):
+            db.importar_questionario(doc)
+        self.assertEqual(self.quantidade('questionarios'), before)
+        self.assertEqual(self.conn.execute("SELECT COUNT(*) AS n FROM questionarios WHERE codigo = 'falha'").fetchone()['n'], 0)
 
     def test_atualizacao_preserva_envios_sem_identificador(self):
         self.conn.execute('ALTER TABLE envios DROP COLUMN id_dispositivo')
