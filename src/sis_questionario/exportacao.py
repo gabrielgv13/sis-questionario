@@ -18,7 +18,7 @@ def cor(index):
     return '#' + ''.join(f'{round(value * 255):02x}' for value in rgb)
 
 
-def preparar(data):
+def parametros(data):
     if not isinstance(data, dict) or type(data.get('quiz_id')) is not int:
         raise ValueError('Questionário inválido.')
     if data.get('format') not in ('pdf', 'csv', 'json') or data.get('mode') not in ('filtered', 'simple'):
@@ -27,7 +27,19 @@ def preparar(data):
     profiles = data.get('profiles', []) if data['mode'] == 'filtered' else []
     if not isinstance(filters, dict):
         raise ValueError('Filtros inválidos.')
-    result = db.resultados_questionario(data['quiz_id'], filters, profiles)
+    return data['quiz_id'], filters, profiles
+
+
+def preparar(data):
+    return formatar(data, db.resultados_questionario(*parametros(data)))
+
+
+async def preparar_async(data, database):
+    result = await database.resultados_questionario(*parametros(data))
+    return formatar(data, result)
+
+
+def formatar(data, result):
     if result is None:
         raise ValueError('Questionário não encontrado.')
     available = {str(chart['id']): chart for chart in result['charts']}

@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 from uuid import UUID
 
@@ -8,50 +7,45 @@ from psycopg import sql
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from .config import carregar_configuracao
-from .perfis import CATEGORIAS, VERSAO, classificar
+from .config import carregar_configuracao, conexao_banco
+from .algoritmo_json import categorias, regras_importacao, regras_salvas
+from .bd_rules import documento_questionario, resultado_envio
+from .questionario_json import validar
 
 
 def conectar():
     carregar_configuracao()
-    senha = os.environ.get('DB_PASSWORD', 'postgres')
-    return psycopg.connect(
-        host=os.environ.get('DB_HOST', 'localhost'),
-        port=int(os.environ.get('DB_PORT', '5432')),
-        dbname=os.environ.get('DB_NAME', 'mydatabase'),
-        user=os.environ.get('DB_USER', 'postgres'),
-        password=senha,
-        row_factory=dict_row,
-    )
+    return psycopg.connect(**conexao_banco(), row_factory=dict_row)
 
 
-def cadastrar_questionario(codigo, titulo, perguntas):
+class QuestionarioExistente(ValueError):
+    pass
+
+
+def cadastrar_questionario(codigo, titulo, perguntas, *, documento=None, estrito=False, regras=None):
     """Cadastra uma vez por código. Reiniciar não altera perguntas já cadastradas."""
-    if not codigo.strip() or not titulo.strip() or not perguntas:
-        raise ValueError('Informe código, título e perguntas.')
-    for pergunta in perguntas:
-        opcoes = pergunta['opcoes']
-        if not pergunta['pergunta'].strip() or len(opcoes) < 2:
-            raise ValueError('Informe enunciado e pelo menos duas opções.')
-        if any(not opcao.strip() for opcao in opcoes) or len(set(opcoes)) != len(opcoes):
-            raise ValueError('As opções devem ser preenchidas e distintas.')
+    documento = documento_questionario(codigo, titulo, perguntas, documento)
+    regras = regras_importacao(documento, regras, legado=not estrito)
     with conectar() as conn:
         questionario = conn.execute(
-            '''INSERT INTO questionarios (codigo, titulo, algoritmo, exibir_resultado)
-               VALUES (%s, %s, %s, %s)
+            '''INSERT INTO questionarios (codigo, titulo, ativo, algoritmo, exibir_resultado, documento, regras_algoritmo)
+               VALUES (%s, %s, %s, %s, %s, %s, %s)
                ON CONFLICT (codigo) DO NOTHING RETURNING id_questionario''',
-            (codigo, titulo, VERSAO if codigo == 'perfil' else None, codigo == 'perfil'),
+            (documento['codigo'], documento['titulo'], documento['ativo'], documento['algoritmo'],
+             documento['exibir_resultado'], Jsonb(documento), Jsonb(regras) if regras else None),
         ).fetchone()
         if not questionario:
+            if estrito:
+                raise QuestionarioExistente('Já existe um questionário com esse código. Altere o campo codigo no arquivo para importar uma cópia.')
             return conn.execute(
                 'SELECT id_questionario FROM questionarios WHERE codigo = %s', (codigo,),
             ).fetchone()['id_questionario']
         id_questionario = questionario['id_questionario']
-        for ordem, pergunta in enumerate(perguntas, 1):
+        for ordem, pergunta in enumerate(documento['perguntas'], 1):
             id_pergunta = conn.execute(
                 '''INSERT INTO perguntas (id_questionario, enunciado, ordem)
                    VALUES (%s, %s, %s) RETURNING id_pergunta''',
-                (id_questionario, pergunta['pergunta'], ordem),
+                (id_questionario, pergunta['enunciado'], ordem),
             ).fetchone()['id_pergunta']
             with conn.cursor() as cur:
                 cur.executemany(
@@ -61,9 +55,34 @@ def cadastrar_questionario(codigo, titulo, perguntas):
         return id_questionario
 
 
+def importar_questionario(documento, regras=None):
+    documento = validar(documento)
+    return cadastrar_questionario(documento['codigo'], documento['titulo'], [], documento=documento, estrito=True, regras=regras)
+
+
+def exportar_questionario(id_questionario):
+    with conectar() as conn:
+        row = conn.execute('''SELECT documento, codigo, titulo, ativo, algoritmo, exibir_resultado
+            FROM questionarios WHERE id_questionario = %s''', (id_questionario,)).fetchone()
+        if row is None:
+            return None
+        if row['documento'] is None:
+            raise ValueError('Estrutura JSON ausente. Execute sis-questionario-db para atualizar o banco.')
+        # Metadata may also have been changed by an administrator using SQL.
+        return validar({**row['documento'], **{key: row[key] for key in
+                        ('codigo', 'titulo', 'ativo', 'algoritmo', 'exibir_resultado')}})
+
+
 def inicializar_banco():
     perguntas = json.loads(Path(__file__).with_name('perguntas.json').read_text(encoding='utf-8'))
     cadastrar_questionario('perfil', 'Questionário de perfil', perguntas)
+
+
+def exportar_algoritmo(id_questionario):
+    with conectar() as conn:
+        row = conn.execute('SELECT algoritmo, regras_algoritmo FROM questionarios WHERE id_questionario = %s',
+                           (id_questionario,)).fetchone()
+        return regras_salvas(row) if row else None
 
 
 def listar_questionarios():
@@ -81,12 +100,13 @@ def resultados_questionario(id_questionario, filtros, perfis=None):
     with conectar() as conn:
         # All charts and totals must describe the same database snapshot.
         conn.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
-        quiz = conn.execute('SELECT titulo, algoritmo, exibir_resultado FROM questionarios WHERE id_questionario = %s',
+        quiz = conn.execute('SELECT titulo, algoritmo, exibir_resultado, regras_algoritmo FROM questionarios WHERE id_questionario = %s',
                             (id_questionario,)).fetchone()
         if not quiz:
             return None
         perfis = [] if perfis is None else perfis
-        if (not isinstance(perfis, list) or any(not isinstance(p, str) or p not in CATEGORIAS for p in perfis)
+        categorias_disponiveis = categorias(quiz)
+        if (not isinstance(perfis, list) or any(not isinstance(p, str) or p not in categorias_disponiveis for p in perfis)
                 or (perfis and not quiz['algoritmo'])):
             raise ValueError('Filtro de perfil inválido.')
         perguntas = conn.execute('SELECT id_pergunta, enunciado FROM perguntas '
@@ -146,7 +166,7 @@ def resultados_questionario(id_questionario, filtros, perfis=None):
             counts = {row['categoria']: row['n'] for row in rows}
             charts.insert(0, dict(id='profiles', title='Perfis dos participantes', base=matching,
                 options=[dict(id=key, label=label, count=counts.get(key, 0), selected=key in perfis)
-                         for key, label in CATEGORIAS.items()]))
+                         for key, label in categorias_disponiveis.items()]))
         return dict(title=quiz['titulo'], total=total, matching=matching, charts=charts,
                     algorithm=quiz['algoritmo'], show_result=quiz['exibir_resultado'])
 
@@ -205,7 +225,7 @@ def registrar_envio(id_aluno, id_questionario, respostas, id_dispositivo):
     id_dispositivo = UUID(str(id_dispositivo))
     with conectar() as conn:
         questionario = conn.execute(
-            'SELECT id_questionario, algoritmo FROM questionarios WHERE id_questionario = %s AND ativo',
+            'SELECT id_questionario, algoritmo, regras_algoritmo FROM questionarios WHERE id_questionario = %s AND ativo',
             (id_questionario,),
         ).fetchone()
         if not questionario:
@@ -215,17 +235,7 @@ def registrar_envio(id_aluno, id_questionario, respostas, id_dispositivo):
                JOIN opcoes o ON o.id_pergunta = p.id_pergunta WHERE p.id_questionario = %s''',
             (id_questionario,),
         ).fetchall()
-        pares = {(r['id_pergunta'], r['id_opcao']) for r in permitidas}
-        perguntas = {p for p, _ in pares}
-        if not perguntas or set(respostas) != perguntas or any((p, o) not in pares for p, o in respostas.items()):
-            raise ValueError('Selecione uma opção válida para cada pergunta.')
-        resultado = None
-        if questionario['algoritmo']:
-            if questionario['algoritmo'] != VERSAO:
-                raise ValueError('Algoritmo de classificação indisponível.')
-            selecionadas = {r['enunciado']: r['texto'] for r in permitidas
-                            if respostas[r['id_pergunta']] == r['id_opcao']}
-            resultado = classificar(selecionadas)
+        resultado = resultado_envio(questionario, permitidas, respostas)
         envio = conn.execute(
             '''INSERT INTO envios (id_aluno, id_questionario, id_dispositivo, resultado)
                VALUES (%s, %s, %s, %s)
@@ -245,17 +255,18 @@ def registrar_envio(id_aluno, id_questionario, respostas, id_dispositivo):
 
 def carregar_resultado(id_envio, id_dispositivo):
     with conectar() as conn:
-        row = conn.execute('''SELECT e.resultado FROM envios e
+        row = conn.execute('''SELECT e.resultado, q.algoritmo, q.regras_algoritmo FROM envios e
             JOIN questionarios q USING (id_questionario)
             WHERE e.id_envio = %s AND e.id_dispositivo = %s AND q.exibir_resultado''',
             (id_envio, id_dispositivo)).fetchone()
-        return row['resultado'] if row else None
+        return {**row['resultado'], 'profiles': regras_salvas(row)['profiles']} if row and row['resultado'] else None
 
 
 def configurar_devolutiva(id_questionario, habilitada):
     with conectar() as conn:
-        row = conn.execute('''UPDATE questionarios SET exibir_resultado = %s
+        row = conn.execute('''UPDATE questionarios SET exibir_resultado = %s,
+            documento = jsonb_set(documento, '{exibir_resultado}', to_jsonb(%s::boolean))
             WHERE id_questionario = %s AND algoritmo IS NOT NULL RETURNING id_questionario''',
-            (habilitada, id_questionario)).fetchone()
+            (habilitada, habilitada, id_questionario)).fetchone()
         if not row:
             raise ValueError('Questionário sem algoritmo de classificação.')

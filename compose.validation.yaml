@@ -1,0 +1,19 @@
+# Explicit test target; never started by normal clean/test profiles.
+services:
+  validate:
+    profiles: [validation]
+    image: sis-questionario-validation:local
+    build:
+      context: .
+      dockerfile: images/clean-image/Dockerfile
+      target: validation
+    environment:
+      DB_HOST: db-clean
+      DB_PORT: "5432"
+      DB_NAME: sis_questionario
+      DB_ADMIN_USER: sis_owner
+      DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD}
+      DB_SSLMODE: disable
+    depends_on:
+      db-clean: {condition: service_healthy}
+    networks: [clean]

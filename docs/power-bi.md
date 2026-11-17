@@ -1,7 +1,7 @@
 # Análise com as tabelas do banco
 
 Conecte o Power BI ao PostgreSQL usando o host, a porta e o banco do `.env`
-(padrão: `localhost:5432`, banco `mydatabase`), usuário `client-app` e a senha
+(padrão: `localhost:5432`, banco `mydatabase`), usuário configurado em `DB_USER` e a senha
 da sua configuração local. Importe as seis tabelas:
 `alunos`, `questionarios`, `perguntas`, `opcoes`, `envios` e `respostas`.
 Não há views ou tabelas analíticas adicionais.
