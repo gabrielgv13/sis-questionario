@@ -15,7 +15,7 @@ from psycopg_pool import PoolTimeout
 
 from sis_questionario.app import create_app
 from sis_questionario.async_pool import create_pool, lifespan
-from sis_questionario.bd_async import AsyncDatabase
+from sis_questionario.async_database import AsyncDatabase
 from sis_questionario.server import loop_factory, serve
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
@@ -50,7 +50,7 @@ class ServerConfigurationTest(unittest.TestCase):
         self.assertEqual(run.call_args.kwargs['forwarded_allow_ips'], '10.0.0.1')
 
     def test_pool_errors_are_private_503(self):
-        with patch.object(AsyncDatabase, 'listar_questionarios', side_effect=PoolTimeout('private')):
+        with patch.object(AsyncDatabase, 'list_active_questionnaires', side_effect=PoolTimeout('private')):
             response = TestClient(create_app()).get('/')
         self.assertEqual(response.status_code, 503)
         self.assertNotIn('private', response.text)

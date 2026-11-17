@@ -1,16 +1,16 @@
 def main() -> None:
     from .server import serve
-    from .setup_db import main as preparar_banco
+    from .database_setup import main as prepare_database
 
-    preparar_banco()
+    prepare_database()
     serve()
 
 
 def main_perfil() -> None:
     from .server import serve
-    from .bd_exec import inicializar_banco
-    from .setup_db import main as preparar_banco
+    from .sync_database import seed_profile_questionnaire
+    from .database_setup import main as prepare_database
 
-    preparar_banco()
-    inicializar_banco()
+    prepare_database()
+    seed_profile_questionnaire()
     serve()

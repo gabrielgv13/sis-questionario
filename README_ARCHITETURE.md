@@ -17,16 +17,17 @@ The main source files under `src/sis_questionario/` are:
 
 | File | Responsibility |
 |---|---|
-| `app.py` | FastAPI factory, participant routes, sessions, browser identification, health check |
+| `app.py` | FastAPI factory, sessions, browser identification, health check |
+| `participant_routes.py` | Participant registration, questionnaire display, submission, and results |
 | `admin.py` | Admin login, questionnaire management, analysis, export endpoints |
-| `bd_exec.py` / `bd_async.py` | Synchronous CLI queries and async web transactions; no ORM |
+| `sync_database.py` / `async_database.py` | Synchronous CLI queries and async web transactions; no ORM |
 | `async_pool.py` | Per-application async PostgreSQL pool managed by FastAPI lifespan |
 | `server.py` | Uvicorn launcher and process/proxy configuration |
-| `perfis.py` / `algoritmo_json.py` | Classification and validation of imported scoring rules |
-| `questionario_json.py` | Validates questionnaire JSON imports |
+| `profile_scoring.py` / `scoring_rules.py` | Classification and validation of imported scoring rules |
+| `questionnaire_import.py` | Validates questionnaire JSON imports |
 | `exportacao.py` | Generates JSON, CSV, and ReportLab PDF reports |
 | `config.py` | Loads `.env` and database connection settings |
-| `setup_db.py` / `banco.sql` | Creates and updates the database structure |
+| `database_setup.py` / `banco.sql` | Creates and updates the database structure |
 | `provision.py` | Deployment provisioning and restricted database account |
 | `templates/` / `static/` | Server-rendered Jinja pages, CSS, and JavaScript |
 

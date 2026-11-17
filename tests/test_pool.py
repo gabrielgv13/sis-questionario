@@ -5,13 +5,13 @@ from unittest.mock import patch
 import psycopg
 from psycopg_pool import ConnectionPool, PoolTimeout
 
-from sis_questionario import bd_exec as db
+from sis_questionario import sync_database as db
 
 
 class PoolLifecycleTest(unittest.TestCase):
     def test_cli_uses_direct_connection(self):
         with patch.object(db.psycopg, 'connect') as connect:
-            db.conectar()
+            db.connect()
         connect.assert_called_once()
 
 

@@ -20,7 +20,7 @@ dependencies = [
 [project.scripts]
 sis-questionario = "sis_questionario:main"
 sis-questionario-perfil = "sis_questionario:main_perfil"
-sis-questionario-db = "sis_questionario.setup_db:main"
+sis-questionario-db = "sis_questionario.database_setup:main"
 sis-questionario-provision = "sis_questionario.provision:main"
 
 [build-system]

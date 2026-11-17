@@ -58,8 +58,8 @@ jobs:
         run: docker compose up -d --wait --wait-timeout 180
       - name: Check initial databases and runtime isolation
         run: |
-          docker compose exec -T web-clean python -c "from sis_questionario import bd_exec as db; from sis_questionario.provision import TABLES; c=db.conectar(); assert all(c.execute('SELECT COUNT(*) AS n FROM '+t).fetchone()['n']==0 for t in TABLES); c.close()"
-          docker compose exec -T web-test python -c "from sis_questionario import bd_exec as db; c=db.conectar(); expected={'questionarios':1,'perguntas':11,'opcoes':120,'alunos':0,'envios':0,'respostas':0}; assert all(c.execute('SELECT COUNT(*) AS n FROM '+t).fetchone()['n']==n for t,n in expected.items()); assert c.execute('SELECT regras_algoritmo FROM questionarios').fetchone()['regras_algoritmo']['version']=='perfil_v1'; c.close()"
+          docker compose exec -T web-clean python -c "from sis_questionario import sync_database as db; from sis_questionario.provision import TABLES; c=db.connect(); assert all(c.execute('SELECT COUNT(*) AS n FROM '+t).fetchone()['n']==0 for t in TABLES); c.close()"
+          docker compose exec -T web-test python -c "from sis_questionario import sync_database as db; c=db.connect(); expected={'questionarios':1,'perguntas':11,'opcoes':120,'alunos':0,'envios':0,'respostas':0}; assert all(c.execute('SELECT COUNT(*) AS n FROM '+t).fetchone()['n']==n for t,n in expected.items()); assert c.execute('SELECT regras_algoritmo FROM questionarios').fetchone()['regras_algoritmo']['version']=='perfil_v1'; c.close()"
           for service in web-clean web-test; do
             docker compose exec -T "$service" python -c "import importlib.util as i, os; from pathlib import Path; assert os.getuid()==10001; assert not any(k.startswith('DB_ADMIN_') for k in os.environ); assert all(i.find_spec(m) is None for m in ('httpx','yaml','gunicorn','gevent')); assert not any(Path('/app',p).exists() for p in ('tests','docs','.env'))"
           done

@@ -7,7 +7,7 @@ import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
 
-from sis_questionario.perfis import classificar
+from sis_questionario.profile_scoring import score_answers
 
 
 @unittest.skipUnless(os.environ.get('TEST_DATABASE_URL'), 'Configure TEST_DATABASE_URL.')
@@ -31,16 +31,16 @@ class PopularPerfilTest(unittest.TestCase):
 
     def test_snapshots_match_classifier_and_rerun_preserves_configuration(self):
         self.conn.execute(self.script)
-        from sis_questionario.questionario_json import validar
+        from sis_questionario.questionnaire_import import validate_questionnaire
         documento = self.conn.execute('SELECT documento FROM questionarios').fetchone()['documento']
-        self.assertEqual(len(validar(documento)['perguntas']), 11)
+        self.assertEqual(len(validate_questionnaire(documento)['perguntas']), 11)
         rows = self.conn.execute('''SELECT e.id_envio, e.resultado,
             jsonb_object_agg(p.enunciado, o.texto) AS respostas FROM envios e
             JOIN respostas r USING (id_envio) JOIN perguntas p USING (id_pergunta)
             JOIN opcoes o USING (id_opcao) GROUP BY e.id_envio''').fetchall()
         self.assertEqual(len(rows), 120)
         for row in rows:
-            self.assertEqual(row['resultado'], classificar(row['respostas']))
+            self.assertEqual(row['resultado'], score_answers(row['respostas']))
         self.conn.execute('UPDATE questionarios SET exibir_resultado = FALSE')
         self.conn.execute(self.script)
         self.assertFalse(self.conn.execute('SELECT exibir_resultado FROM questionarios').fetchone()['exibir_resultado'])

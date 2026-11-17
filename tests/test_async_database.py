@@ -13,8 +13,8 @@ from psycopg_pool import AsyncConnectionPool, PoolTimeout
 
 from sis_questionario.app import create_app
 from sis_questionario.async_pool import get_database
-from sis_questionario.bd_async import AsyncDatabase
-from sis_questionario.bd_exec import EnvioDuplicado
+from sis_questionario.async_database import AsyncDatabase
+from sis_questionario.sync_database import DuplicateSubmission
 from sis_questionario.server import loop_factory
 
 
@@ -39,10 +39,10 @@ class AsyncDatabaseTest(unittest.IsolatedAsyncioTestCase):
         await self.pool.open()
         self.addAsyncCleanup(self.pool.close)
         self.db = AsyncDatabase(self.pool)
-        self.quiz = await self.db.cadastrar_questionario('simple', 'Simple', [
+        self.quiz = await self.db.register_questionnaire('simple', 'Simple', [
             dict(pergunta='First?', opcoes=['A', 'B']), dict(pergunta='Second?', opcoes=['C', 'D'])])
-        self.student = await self.db.registrar_aluno('Test', 'test@example.com')
-        quiz = await self.db.carregar_questionario(self.quiz)
+        self.student = await self.db.register_participant('Test', 'test@example.com')
+        quiz = await self.db.get_active_questionnaire(self.quiz)
         self.answers = {q['id_pergunta']: q['opcoes'][0]['id_opcao'] for q in quiz['perguntas']}
 
     async def drop_schema(self):
@@ -50,11 +50,11 @@ class AsyncDatabaseTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_commit_duplicate_and_aggregate_snapshot(self):
         device = uuid4()
-        await self.db.registrar_envio(self.student, self.quiz, self.answers, device)
-        self.assertTrue(await self.db.dispositivo_ja_respondeu(device, self.quiz))
-        with self.assertRaises(EnvioDuplicado):
-            await self.db.registrar_envio(self.student, self.quiz, self.answers, device)
-        result = await self.db.resultados_questionario(self.quiz, {})
+        await self.db.save_submission(self.student, self.quiz, self.answers, device)
+        self.assertTrue(await self.db.has_device_submitted(device, self.quiz))
+        with self.assertRaises(DuplicateSubmission):
+            await self.db.save_submission(self.student, self.quiz, self.answers, device)
+        result = await self.db.get_questionnaire_results(self.quiz, {})
         self.assertEqual((result['total'], result['matching']), (1, 1))
         self.assertEqual([chart['base'] for chart in result['charts']], [1, 1])
 
@@ -64,12 +64,12 @@ class AsyncDatabaseTest(unittest.IsolatedAsyncioTestCase):
         await self.owner.execute('''CREATE TRIGGER reject_answer BEFORE INSERT ON respostas
             FOR EACH ROW EXECUTE FUNCTION reject_answer()''')
         with self.assertRaises(psycopg.Error):
-            await self.db.registrar_envio(self.student, self.quiz, self.answers, uuid4())
+            await self.db.save_submission(self.student, self.quiz, self.answers, uuid4())
         async with self.pool.connection() as conn:
             count = await (await conn.execute('SELECT COUNT(*) AS n FROM envios')).fetchone()
             self.assertEqual(count['n'], 0)
         await self.owner.execute('DROP TRIGGER reject_answer ON respostas')
-        await self.db.registrar_envio(self.student, self.quiz, self.answers, uuid4())
+        await self.db.save_submission(self.student, self.quiz, self.answers, uuid4())
 
     async def test_cancellation_returns_connection_and_rolls_back(self):
         entered = asyncio.Event()
@@ -117,13 +117,13 @@ class AsyncDatabaseTest(unittest.IsolatedAsyncioTestCase):
     async def test_profile_import_export_and_settings(self):
         import json
         document = json.loads(Path('tests/fixtures/questionario_perfil.json').read_text(encoding='utf-8'))
-        from sis_questionario.perfis import REGRAS
-        identifier = await self.db.importar_questionario(document, REGRAS)
-        exported = await self.db.exportar_questionario(identifier)
+        from sis_questionario.profile_scoring import DEFAULT_SCORING_RULES
+        identifier = await self.db.import_questionnaire(document, DEFAULT_SCORING_RULES)
+        exported = await self.db.export_questionnaire(identifier)
         self.assertEqual(exported['perguntas'], document['perguntas'])
-        await self.db.configurar_devolutiva(identifier, False)
-        self.assertFalse((await self.db.exportar_questionario(identifier))['exibir_resultado'])
-        self.assertEqual(len(await self.db.listar_questionarios_admin()), 2)
+        await self.db.set_feedback_enabled(identifier, False)
+        self.assertFalse((await self.db.export_questionnaire(identifier))['exibir_resultado'])
+        self.assertEqual(len(await self.db.list_all_questionnaires()), 2)
 
     async def test_admin_exports_use_async_query_and_release_connection(self):
         import re
@@ -147,25 +147,25 @@ class AsyncDatabaseTest(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(self.pool.get_stats()['pool_available'], self.pool.get_stats()['pool_size'])
 
     async def test_custom_algorithm_is_persisted_and_used_by_results_and_charts(self):
-        from test_algoritmo_json import exemplos
-        quiz, rules = exemplos()
+        from test_scoring_rules import example_questionnaire_and_rules
+        quiz, rules = example_questionnaire_and_rules()
         with self.assertRaises(ValueError):
-            await self.db.importar_questionario(quiz)
-        self.assertEqual(len(await self.db.listar_questionarios_admin()), 1)
-        identifier = await self.db.importar_questionario(quiz, rules)
-        self.assertEqual(await self.db.exportar_algoritmo(identifier), rules)
-        stored = await self.db.carregar_questionario(identifier)
+            await self.db.import_questionnaire(quiz)
+        self.assertEqual(len(await self.db.list_all_questionnaires()), 1)
+        identifier = await self.db.import_questionnaire(quiz, rules)
+        self.assertEqual(await self.db.export_scoring_rules(identifier), rules)
+        stored = await self.db.get_active_questionnaire(identifier)
         self.assertEqual(stored['regras_algoritmo'], rules)
-        self.assertEqual(await AsyncDatabase(self.pool).exportar_algoritmo(identifier), rules)
+        self.assertEqual(await AsyncDatabase(self.pool).export_scoring_rules(identifier), rules)
         answers = {q['id_pergunta']: q['opcoes'][0]['id_opcao'] for q in stored['perguntas']}
         device = uuid4()
-        submission = await self.db.registrar_envio(self.student, identifier, answers, device)
-        result = await self.db.carregar_resultado(submission, device)
+        submission = await self.db.save_submission(self.student, identifier, answers, device)
+        result = await self.db.get_submission_result(submission, device)
         self.assertEqual(result['category'], 'perfil_a')
         self.assertEqual(result['scores'], {'perfil_a': 40, 'perfil_b': -10})
         self.assertEqual(result['profiles'], rules['profiles'])
-        charts = await self.db.resultados_questionario(identifier, {}, ['perfil_a'])
+        charts = await self.db.get_questionnaire_results(identifier, {}, ['perfil_a'])
         self.assertEqual(charts['matching'], 1)
         self.assertEqual(charts['charts'][0]['options'][0]['label'], 'Nome do perfil A')
-        with self.assertRaises(EnvioDuplicado):
-            await self.db.registrar_envio(self.student, identifier, answers, device)
+        with self.assertRaises(DuplicateSubmission):
+            await self.db.save_submission(self.student, identifier, answers, device)

@@ -7,7 +7,7 @@ from fastapi import Request
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
-from .bd_async import AsyncDatabase
+from .async_database import AsyncDatabase
 from .config import conexao_banco
 
 

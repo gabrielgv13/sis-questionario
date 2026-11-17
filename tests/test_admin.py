@@ -13,8 +13,8 @@ from psycopg import sql
 from psycopg.rows import dict_row
 from werkzeug.security import generate_password_hash
 
-from sis_questionario import bd_exec as db
-from sis_questionario.bd_async import AsyncDatabase
+from sis_questionario import sync_database as db
+from sis_questionario.async_database import AsyncDatabase
 from sis_questionario.app import create_app
 
 
@@ -47,14 +47,14 @@ class AdminAccessTest(unittest.TestCase):
     def test_admin_home_navigation_and_management_preview(self):
         response = self.login()
         self.assertTrue(response.headers['location'].endswith('/admin/'))
-        with patch.object(AsyncDatabase, 'listar_questionarios_admin') as listing:
+        with patch.object(AsyncDatabase, 'list_all_questionnaires') as listing:
             home = self.client.get('/admin')
             listing.assert_not_called()
         self.assertIn(b'/admin/analise', home.content)
         self.assertIn(b'/admin/questionarios', home.content)
         questions = [dict(id_questionario=1, titulo='Perfil <teste>', codigo='perfil', ativo=True,
                           algoritmo='perfil_v1', exibir_resultado=False)]
-        with patch.object(AsyncDatabase, 'listar_questionarios_admin', return_value=questions):
+        with patch.object(AsyncDatabase, 'list_all_questionnaires', return_value=questions):
             analysis = self.client.get('/admin/analise')
             management = self.client.get('/admin/questionarios')
         self.assertEqual(analysis.status_code, 200)
@@ -75,7 +75,7 @@ class AdminAccessTest(unittest.TestCase):
         self.login()
         with session_transaction(self.client) as session:
             headers = {'X-CSRF-Token': session['admin_csrf']}
-        with patch.object(AsyncDatabase, 'configurar_visibilidade', return_value=True) as configure:
+        with patch.object(AsyncDatabase, 'set_questionnaire_visibility', return_value=True) as configure:
             self.assertEqual(self.client.post(url, json={'visible': False}).status_code, 400)
             for payload in [{}, [], {'visible': 'false'}, {'visible': 0}]:
                 self.assertEqual(self.client.post(url, json=payload, headers=headers).status_code, 400)
@@ -98,7 +98,7 @@ class AdminAccessTest(unittest.TestCase):
 
     def test_dashboard_api_validation_and_logout(self):
         self.login()
-        with patch.object(AsyncDatabase, 'listar_questionarios_admin', return_value=[]):
+        with patch.object(AsyncDatabase, 'list_all_questionnaires', return_value=[]):
             page = self.client.get('/admin')
         self.assertEqual(page.status_code, 200)
         self.assertEqual(page.headers['Cache-Control'], 'no-store')
@@ -108,7 +108,7 @@ class AdminAccessTest(unittest.TestCase):
         self.assertEqual(self.client.post('/admin/api/results', json={'quiz_id': 1}).status_code, 400)
         for payload in [[], {'quiz_id': True}, {'quiz_id': 1, 'filters': []}]:
             self.assertEqual(self.client.post('/admin/api/results', json=payload, headers=headers).status_code, 400)
-        with patch.object(AsyncDatabase, 'resultados_questionario', return_value={'total': 2, 'charts': []}) as query:
+        with patch.object(AsyncDatabase, 'get_questionnaire_results', return_value={'total': 2, 'charts': []}) as query:
             response = self.client.post('/admin/api/results', json={'quiz_id': 1}, headers=headers)
             self.assertEqual(response.json()['total'], 2)
             query.assert_called_once_with(1, {})
@@ -126,11 +126,11 @@ class AdminAccessTest(unittest.TestCase):
         payload = {'quiz_id': 1, 'show_result': False}
         self.assertEqual(self.client.post('/admin/api/settings', json=payload).status_code, 400)
         self.assertEqual(self.client.post('/admin/api/settings', json={'quiz_id': 1, 'show_result': 'false'}, headers=headers).status_code, 400)
-        with patch.object(AsyncDatabase, 'configurar_devolutiva') as configure:
+        with patch.object(AsyncDatabase, 'set_feedback_enabled') as configure:
             response = self.client.post('/admin/api/settings', json=payload, headers=headers)
             self.assertEqual(response.status_code, 200)
             configure.assert_called_once_with(1, False)
-        with patch.object(AsyncDatabase, 'configurar_devolutiva', side_effect=ValueError('Sem algoritmo')):
+        with patch.object(AsyncDatabase, 'set_feedback_enabled', side_effect=ValueError('Sem algoritmo')):
             self.assertEqual(self.client.post('/admin/api/settings', json=payload, headers=headers).status_code, 400)
 
 
@@ -159,7 +159,7 @@ class AdminAggregationTest(unittest.TestCase):
         def connection():
             with self.conn.transaction():
                 yield self.conn
-        patcher = patch.object(db, 'conectar', connection)
+        patcher = patch.object(db, 'connect', connection)
         patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -172,36 +172,36 @@ class AdminAggregationTest(unittest.TestCase):
         return [o['count'] for chart in data['charts'] if chart['id'] == question for o in chart['options']]
 
     def test_counts_and_cross_filters(self):
-        data = db.resultados_questionario(1, {})
+        data = db.get_questionnaire_results(1, {})
         self.assertEqual((data['total'], data['matching']), (3, 3))
         self.assertEqual(self.counts(data, 1), [2, 1, 0])
-        data = db.resultados_questionario(1, {'1': [1]})
+        data = db.get_questionnaire_results(1, {'1': [1]})
         self.assertEqual(data['matching'], 2)
         self.assertEqual(self.counts(data, 2), [1, 1, 0])
         self.assertEqual(self.counts(data, 1), [2, 0, 0])
         self.assertEqual(data['charts'][0]['base'], 2)
         self.assertEqual(data['charts'][0]['options'][0]['count'] / data['charts'][0]['base'], 1)
-        data = db.resultados_questionario(1, {'1': [1], '2': [5]})
+        data = db.get_questionnaire_results(1, {'1': [1], '2': [5]})
         self.assertEqual(data['matching'], 1)
         self.assertEqual(self.counts(data, 1), [1, 0, 0])
         self.assertEqual(self.counts(data, 2), [0, 1, 0])
-        self.assertEqual(db.resultados_questionario(1, {'1': [1, 2]})['matching'], 3)
-        empty = db.resultados_questionario(1, {'1': [3]})
+        self.assertEqual(db.get_questionnaire_results(1, {'1': [1, 2]})['matching'], 3)
+        empty = db.get_questionnaire_results(1, {'1': [3]})
         self.assertEqual(empty['matching'], 0)
         self.assertTrue(all(chart['base'] == 0 for chart in empty['charts']))
-        self.assertEqual(db.resultados_questionario(1, {})['matching'], 3)
+        self.assertEqual(db.get_questionnaire_results(1, {})['matching'], 3)
 
     def test_invalid_filters_and_quiz_isolation(self):
         for filters in [{'1': [7]}, {'3': [7]}, {'1': [True]}, {'1': ['1']}, {'01': [1]}, {'x': []}]:
             with self.assertRaises(ValueError):
-                db.resultados_questionario(1, filters)
-        self.assertIsNone(db.resultados_questionario(999, {}))
-        self.assertEqual(db.resultados_questionario(2, {})['total'], 1)
+                db.get_questionnaire_results(1, filters)
+        self.assertIsNone(db.get_questionnaire_results(999, {}))
+        self.assertEqual(db.get_questionnaire_results(2, {})['total'], 1)
         self.conn.autocommit = True
         self.conn.execute('DELETE FROM respostas WHERE id_envio = 4')
         self.conn.execute('DELETE FROM envios WHERE id_envio = 4')
         self.conn.autocommit = False
-        data = db.resultados_questionario(2, {})
+        data = db.get_questionnaire_results(2, {})
         self.assertEqual((data['total'], data['matching']), (0, 0))
         self.assertEqual(self.counts(data, 3), [0])
 
@@ -211,20 +211,20 @@ class AdminAggregationTest(unittest.TestCase):
         self.conn.execute('''UPDATE envios SET resultado = jsonb_build_object('category',
             CASE id_envio WHEN 1 THEN 'tecnologico' ELSE 'misto' END) WHERE id_envio IN (1,2)''')
         self.conn.autocommit = False
-        data = db.resultados_questionario(1, {})
+        data = db.get_questionnaire_results(1, {})
         chart = data['charts'][0]
         self.assertEqual(chart['id'], 'profiles')
         counts = {o['id']: o['count'] for o in chart['options']}
         self.assertEqual((counts['tecnologico'], counts['misto'], counts['sem_classificacao']), (1,1,1))
-        data = db.resultados_questionario(1, {}, ['tecnologico'])
+        data = db.get_questionnaire_results(1, {}, ['tecnologico'])
         self.assertEqual(data['matching'], 1)
         self.assertEqual(self.counts(data, 2), [1,0,0])
-        data = db.resultados_questionario(1, {'2': [5]})
+        data = db.get_questionnaire_results(1, {'2': [5]})
         counts = {o['id']: o['count'] for o in data['charts'][0]['options']}
         self.assertEqual((counts['tecnologico'], counts['misto'], counts['sem_classificacao']), (0,1,1))
-        self.assertEqual(db.resultados_questionario(1, {'2':[5]}, ['tecnologico'])['matching'], 0)
-        self.assertEqual(db.resultados_questionario(1, {}, ['misto','sem_classificacao'])['matching'], 2)
+        self.assertEqual(db.get_questionnaire_results(1, {'2':[5]}, ['tecnologico'])['matching'], 0)
+        self.assertEqual(db.get_questionnaire_results(1, {}, ['misto','sem_classificacao'])['matching'], 2)
         for values in [['unknown'], 'tecnologico', [True]]:
             with self.assertRaises(ValueError):
-                db.resultados_questionario(1, {}, values)
-        self.assertEqual(len(db.resultados_questionario(2, {})['charts']), 1)
+                db.get_questionnaire_results(1, {}, values)
+        self.assertEqual(len(db.get_questionnaire_results(2, {})['charts']), 1)

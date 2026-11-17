@@ -7,9 +7,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from sis_questionario.questionario_json import MAX_BYTES, ler_arquivo, validar
+from sis_questionario.questionnaire_import import MAX_BYTES, parse_questionnaire, validate_questionnaire
 from sis_questionario.app import create_app
-from sis_questionario.bd_async import AsyncDatabase as db
+from sis_questionario.async_database import AsyncDatabase as db
 
 
 def exemplo():
@@ -21,9 +21,9 @@ def exemplo():
 class QuestionnaireJsonTest(unittest.TestCase):
     def test_valid_roundtrip_bom_and_profile_example(self):
         doc = exemplo()
-        self.assertEqual(ler_arquivo(json.dumps(doc).encode('utf-8-sig')), doc)
+        self.assertEqual(parse_questionnaire(json.dumps(doc).encode('utf-8-sig')), doc)
         profile = Path(__file__).resolve().parents[1] / 'tests/fixtures/questionario_perfil.json'
-        self.assertEqual(len(ler_arquivo(profile.read_bytes())['perguntas']), 11)
+        self.assertEqual(len(parse_questionnaire(profile.read_bytes())['perguntas']), 11)
 
     def test_invalid_documents(self):
         for changes in [dict(schema_version=True), dict(schema_version=2), dict(codigo='../x'),
@@ -31,16 +31,16 @@ class QuestionnaireJsonTest(unittest.TestCase):
                         dict(exibir_resultado=True), dict(perguntas=[]), dict(extra='field'),
                         dict(algoritmo=7)]:
             with self.subTest(changes=changes), self.assertRaises(ValueError):
-                validar({**exemplo(), **changes})
+                validate_questionnaire({**exemplo(), **changes})
         for question in [dict(enunciado='Q',opcoes=['A',' A ']), dict(enunciado='Q',opcoes=['A']),
                          dict(enunciado='Q',opcoes=['A',None]), dict(enunciado='',opcoes=['A','B'])]:
             with self.subTest(question=question), self.assertRaises(ValueError):
-                validar({**exemplo(), 'perguntas': [question]})
+                validate_questionnaire({**exemplo(), 'perguntas': [question]})
 
     def test_invalid_encoding_duplicate_keys_and_size(self):
         for raw in [b'not json', b'\xff', b'{"a":1,"a":2}', b'{"a":NaN}', b' '*(MAX_BYTES+1)]:
             with self.assertRaises(ValueError):
-                ler_arquivo(raw)
+                parse_questionnaire(raw)
 
     def test_authenticated_endpoints_and_error_feedback(self):
         app = create_app(inicializar=False)
@@ -56,15 +56,15 @@ class QuestionnaireJsonTest(unittest.TestCase):
         self.assertEqual(upload().status_code, 400)
         headers = {'X-CSRF-Token': 'token'}
         self.assertEqual(upload(headers, b'bad').status_code, 400)
-        with patch.object(db, 'importar_questionario', return_value=7) as save:
+        with patch.object(db, 'import_questionnaire', return_value=7) as save:
             self.assertEqual(upload(headers).status_code, 201)
             save.assert_called_once_with(exemplo())
-        with patch.object(db, 'importar_questionario', side_effect=db.QuestionarioExistente('Já existe')):
+        with patch.object(db, 'import_questionnaire', side_effect=db.DuplicateQuestionnaire('Já existe')):
             self.assertEqual(upload(headers).status_code, 409)
-        with patch.object(db, 'exportar_questionario', return_value=exemplo()):
+        with patch.object(db, 'export_questionnaire', return_value=exemplo()):
             exported = client.get('/admin/api/questionnaires/1/export')
             self.assertEqual(exported.json(), exemplo())
             self.assertIn('attachment', exported.headers['Content-Disposition'])
             self.assertEqual(exported.headers['Cache-Control'], 'no-store')
-        with patch.object(db, 'exportar_questionario', return_value=None):
+        with patch.object(db, 'export_questionnaire', return_value=None):
             self.assertEqual(client.get('/admin/api/questionnaires/999/export').status_code, 404)

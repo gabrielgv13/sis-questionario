@@ -6,7 +6,7 @@ import json
 from datetime import UTC, datetime
 from xml.sax.saxutils import escape
 
-from . import bd_exec as db
+from . import sync_database as db
 
 PALETA = ['#0f766e', '#2563eb', '#d97706', '#9333ea', '#e11d48', '#0891b2', '#4d7c0f', '#c2410c', '#7c3aed', '#475569']
 
@@ -31,11 +31,11 @@ def parametros(data):
 
 
 def preparar(data):
-    return formatar(data, db.resultados_questionario(*parametros(data)))
+    return formatar(data, db.get_questionnaire_results(*parametros(data)))
 
 
 async def preparar_async(data, database):
-    result = await database.resultados_questionario(*parametros(data))
+    result = await database.get_questionnaire_results(*parametros(data))
     return formatar(data, result)
 
 

@@ -11,8 +11,8 @@ from starlette.datastructures import UploadFile
 from .web import abort, redirect, render_template, read_json
 from werkzeug.security import check_password_hash
 
-from .bd_async import AsyncDatabase
-from .bd_exec import QuestionarioExistente
+from .async_database import AsyncDatabase
+from .sync_database import DuplicateQuestionnaire
 from .async_pool import get_database
 
 admin = APIRouter(prefix='/admin')
@@ -84,21 +84,21 @@ async def dashboard(request: Request):
 @admin.head('/analise', include_in_schema=False)
 @protected
 async def analysis(request: Request, db: AsyncDatabase = Depends(get_database)):
-    return await render_template(request, 'admin.html', questionarios=await db.listar_questionarios_admin(), token=csrf_token(request))
+    return await render_template(request, 'admin.html', questionarios=await db.list_all_questionnaires(), token=csrf_token(request))
 
 
 @admin.get('/questionarios', name='admin.questionnaires')
 @admin.head('/questionarios', include_in_schema=False)
 @protected
 async def questionnaires(request: Request, db: AsyncDatabase = Depends(get_database)):
-    return await render_template(request, 'admin_questionarios.html', questionarios=await db.listar_questionarios_admin(), token=csrf_token(request))
+    return await render_template(request, 'admin_questionarios.html', questionarios=await db.list_all_questionnaires(), token=csrf_token(request))
 
 
 @admin.post('/api/questionnaires/import', name='admin.import_questionnaire')
 @protected
 async def import_questionnaire(request: Request, db: AsyncDatabase = Depends(get_database)):
-    from .questionario_json import MAX_BYTES, ler_arquivo
-    from .algoritmo_json import ler_arquivo as ler_algoritmo, regras_importacao
+    from .questionnaire_import import MAX_BYTES, parse_questionnaire
+    from .scoring_rules import parse_scoring_rules, resolve_import_rules
     check_csrf(request, request.headers.get('X-CSRF-Token'))
     # Bound the complete multipart body, including requests without Content-Length.
     limit = 2 * MAX_BYTES + 65536
@@ -122,11 +122,11 @@ async def import_questionnaire(request: Request, db: AsyncDatabase = Depends(get
         if len(form.getlist('file')) != 1 or len(form.getlist('algorithm')) > 1:
             return JSONResponse({'error': 'Envie apenas um questionário e um algoritmo.'}, status_code=400)
     try:
-        documento = await run_in_threadpool(ler_arquivo, raw)
-        regras = await run_in_threadpool(ler_algoritmo, algorithm_raw, documento) if algorithm_raw is not None else None
-        regras = await run_in_threadpool(regras_importacao, documento, regras)
-        identifier = await db.importar_questionario(documento, regras) if regras is not None else await db.importar_questionario(documento)
-    except QuestionarioExistente as error:
+        documento = await run_in_threadpool(parse_questionnaire, raw)
+        regras = await run_in_threadpool(parse_scoring_rules, algorithm_raw, documento) if algorithm_raw is not None else None
+        regras = await run_in_threadpool(resolve_import_rules, documento, regras)
+        identifier = await db.import_questionnaire(documento, regras) if regras is not None else await db.import_questionnaire(documento)
+    except DuplicateQuestionnaire as error:
         return JSONResponse({'error': str(error)}, status_code=409)
     except ValueError as error:
         return JSONResponse({'error': str(error)}, status_code=400)
@@ -138,7 +138,7 @@ async def import_questionnaire(request: Request, db: AsyncDatabase = Depends(get
 @protected
 async def export_questionnaire(request: Request, identifier: int, db: AsyncDatabase = Depends(get_database)):
     try:
-        documento = await db.exportar_questionario(identifier)
+        documento = await db.export_questionnaire(identifier)
     except ValueError as error:
         return JSONResponse({'error': str(error)}, status_code=400)
     if documento is None:
@@ -153,7 +153,7 @@ async def export_questionnaire(request: Request, identifier: int, db: AsyncDatab
 @protected
 async def export_algorithm(request: Request, identifier: int, db: AsyncDatabase = Depends(get_database)):
     try:
-        regras = await db.exportar_algoritmo(identifier)
+        regras = await db.export_scoring_rules(identifier)
     except ValueError as error:
         return JSONResponse({'error': str(error)}, status_code=400)
     if regras is None:
@@ -175,9 +175,9 @@ async def results(request: Request, db: AsyncDatabase = Depends(get_database)):
         abort(400, description='Filtros inválidos.')
     try:
         if 'profiles' in data:
-            result = await db.resultados_questionario(data['quiz_id'], filters, data['profiles'])
+            result = await db.get_questionnaire_results(data['quiz_id'], filters, data['profiles'])
         else:
-            result = await db.resultados_questionario(data['quiz_id'], filters)
+            result = await db.get_questionnaire_results(data['quiz_id'], filters)
     except ValueError as error:
         abort(400, description=str(error))
     if result is None:
@@ -194,7 +194,7 @@ async def settings(request: Request, db: AsyncDatabase = Depends(get_database)):
             or type(data.get('show_result')) is not bool):
         abort(400, description='Configuração inválida.')
     try:
-        await db.configurar_devolutiva(data['quiz_id'], data['show_result'])
+        await db.set_feedback_enabled(data['quiz_id'], data['show_result'])
     except ValueError as error:
         abort(400, description=str(error))
     return JSONResponse({'ok': True})
@@ -225,6 +225,6 @@ async def questionnaire_visibility(request: Request, identifier: int, db: AsyncD
     data = await read_json(request)
     if not isinstance(data, dict) or type(data.get('visible')) is not bool:
         return JSONResponse({'error': 'Visibilidade inválida.'}, status_code=400)
-    if not await db.configurar_visibilidade(identifier, data['visible']):
+    if not await db.set_questionnaire_visibility(identifier, data['visible']):
         abort(404)
     return JSONResponse({'ok': True, 'visible': data['visible']})

@@ -1,4 +1,4 @@
--- Estrutura aplicada pelo setup_db usando Psycopg.
+-- Estrutura aplicada pelo database_setup usando Psycopg.
 SET search_path TO public;
 
 -- INICIO_TABELAS

@@ -8,9 +8,9 @@ import httpx
 from fastapi.testclient import TestClient
 
 from http_helpers import session_transaction
-from sis_questionario.bd_async import AsyncDatabase as db
+from sis_questionario.async_database import AsyncDatabase as db
 from sis_questionario.app import create_app
-from sis_questionario.questionario_json import MAX_BYTES
+from sis_questionario.questionnaire_import import MAX_BYTES
 
 
 class ParticipantRoutesTest(unittest.TestCase):
@@ -20,9 +20,9 @@ class ParticipantRoutesTest(unittest.TestCase):
         self.addCleanup(self.client.close)
         self.quiz = dict(id_questionario=1, titulo='Teste', perguntas=[
             dict(id_pergunta=2, enunciado='Escolha', opcoes=[dict(id_opcao=3, texto='Sim')])])
-        for name, result in [('listar_questionarios', [self.quiz]),
-                             ('carregar_questionario', self.quiz),
-                             ('dispositivo_ja_respondeu', False), ('registrar_aluno', 4)]:
+        for name, result in [('list_active_questionnaires', [self.quiz]),
+                             ('get_active_questionnaire', self.quiz),
+                             ('has_device_submitted', False), ('register_participant', 4)]:
             mock = patch.object(db, name, return_value=result)
             mock.start()
             self.addCleanup(mock.stop)
@@ -32,19 +32,19 @@ class ParticipantRoutesTest(unittest.TestCase):
         response = self.client.post('/submit-info', data={
             'name': ' aluno ', 'email': ' ALUNO@EXAMPLE.COM ', 'questionario_id': '1'})
         self.assertEqual(response.status_code, 302)
-        db.registrar_aluno.assert_called_once_with('Aluno', 'aluno@example.com')
+        db.register_participant.assert_called_once_with('Aluno', 'aluno@example.com')
         page = self.client.get('/pesquisa-perguntas')
         self.assertEqual(page.status_code, 200)
         return re.search(r'name="token_formulario" value="([^"]+)"', page.text)[1]
 
     def test_full_participant_flow_and_private_completion(self):
         token = self.start_questionnaire()
-        with patch.object(db, 'registrar_envio', return_value=5) as save:
+        with patch.object(db, 'save_submission', return_value=5) as save:
             response = self.client.post('/submit-pesquisa', data={
                 'token_formulario': token, 'pergunta_2': '3'})
         self.assertEqual(response.status_code, 302)
         save.assert_called_once_with(4, 1, {2: 3}, self.client.cookies.get('id_dispositivo'))
-        with patch.object(db, 'carregar_resultado', return_value=None) as result:
+        with patch.object(db, 'get_submission_result', return_value=None) as result:
             page = self.client.get('/concluido')
         self.assertEqual(page.status_code, 200)
         self.assertIn('foram salvas', page.text)
@@ -56,7 +56,7 @@ class ParticipantRoutesTest(unittest.TestCase):
 
     def test_bad_csrf_and_repeated_answers_do_not_write(self):
         token = self.start_questionnaire()
-        with patch.object(db, 'registrar_envio') as save:
+        with patch.object(db, 'save_submission') as save:
             for data in [{'token_formulario': 'wrong', 'pergunta_2': '3'},
                          {'token_formulario': token, 'pergunta_2': ['3', '3']},
                          {'token_formulario': token, 'pergunta_bad': '3'}]:
@@ -65,7 +65,7 @@ class ParticipantRoutesTest(unittest.TestCase):
 
     def test_duplicate_submission_is_conflict(self):
         token = self.start_questionnaire()
-        with patch.object(db, 'registrar_envio', side_effect=db.EnvioDuplicado):
+        with patch.object(db, 'save_submission', side_effect=db.DuplicateSubmission):
             response = self.client.post('/submit-pesquisa', data={
                 'token_formulario': token, 'pergunta_2': '3'})
         self.assertEqual(response.status_code, 409)
@@ -75,7 +75,7 @@ class ParticipantRoutesTest(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn('400', response.text)
         self.assertIn('habilite os cookies', response.text)
-        db.registrar_aluno.assert_not_called()
+        db.register_participant.assert_not_called()
         self.assertEqual(self.client.get('/static/css/app.css').status_code, 200)
         missing = self.client.get('/missing')
         self.assertEqual(missing.status_code, 404)
@@ -106,7 +106,7 @@ class AsyncConcurrencyTest(unittest.IsolatedAsyncioTestCase):
 
         app = create_app()
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url='https://testserver') as client:
-            with patch.object(db, 'listar_questionarios', side_effect=slow_listing):
+            with patch.object(db, 'list_active_questionnaires', side_effect=slow_listing):
                 slow = asyncio.create_task(client.get('/'))
                 try:
                     await asyncio.wait_for(entered.wait(), 2)

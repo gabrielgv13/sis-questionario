@@ -13,14 +13,14 @@ def use_sync_transaction_fixture(app):
     """
     from types import SimpleNamespace
     from unittest.mock import AsyncMock
-    from sis_questionario import bd_exec
-    from sis_questionario.bd_async import AsyncDatabase
+    from sis_questionario import sync_database
+    from sis_questionario.async_database import AsyncDatabase
 
     methods = {
-        name: AsyncMock(side_effect=getattr(bd_exec, name))
+        name: AsyncMock(side_effect=getattr(sync_database, name))
         for name in vars(AsyncDatabase)
-        if not name.startswith('_') and hasattr(bd_exec, name)
-        and callable(getattr(bd_exec, name))
+        if not name.startswith('_') and hasattr(sync_database, name)
+        and callable(getattr(sync_database, name))
     }
     app.state.database = SimpleNamespace(**methods)
 

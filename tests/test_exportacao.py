@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from sis_questionario import exportacao as exports
 from sis_questionario.app import create_app
-from sis_questionario.bd_async import AsyncDatabase
+from sis_questionario.async_database import AsyncDatabase
 
 
 class ExportTest(unittest.TestCase):
@@ -21,7 +21,7 @@ class ExportTest(unittest.TestCase):
             dict(id='profiles', title='Perfis', base=5, options=[
                 dict(id='misto', label='Perfil misto', count=5, selected=False)])])
         self.payload = dict(quiz_id=1, format='json', mode='filtered', charts='all', filters={'1': [2]}, profiles=[])
-        query = patch.object(exports.db, 'resultados_questionario', side_effect=lambda *args: copy.deepcopy(self.result))
+        query = patch.object(exports.db, 'get_questionnaire_results', side_effect=lambda *args: copy.deepcopy(self.result))
         self.query = query.start()
         self.addCleanup(query.stop)
 
@@ -86,7 +86,7 @@ class ExportTest(unittest.TestCase):
         with session_transaction(client) as session:
             session['admin_authenticated'] = True
         self.assertEqual(client.post('/admin/api/export', json=self.payload).status_code, 400)
-        query = patch.object(AsyncDatabase, 'resultados_questionario', side_effect=lambda *args: copy.deepcopy(self.result))
+        query = patch.object(AsyncDatabase, 'get_questionnaire_results', side_effect=lambda *args: copy.deepcopy(self.result))
         query.start()
         self.addCleanup(query.stop)
         for kind, mime in [('json','application/json'), ('csv','text/csv'), ('pdf','application/pdf')]:

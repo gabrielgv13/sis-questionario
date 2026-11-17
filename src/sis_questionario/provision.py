@@ -101,8 +101,8 @@ def provisionar():
                     conn.execute(sql.SQL('GRANT USAGE ON SEQUENCE {} TO {}')
                                  .format(sql.Identifier(*sequence.split('.')), role))
             if os.environ.get('SEED_PROFILE', '0') == '1':
-                from .bd_exec import inicializar_banco
-                inicializar_banco()
+                from .sync_database import seed_profile_questionnaire
+                seed_profile_questionnaire()
         finally:
             conn.execute('SELECT pg_advisory_unlock(734190261)')
 

@@ -216,9 +216,9 @@ funcionando apenas com `SELECT` e `INSERT`, além das permissões de sequências
 ```text
 src/sis_questionario/
     app.py              # Rotas e criação do FastAPI
-    bd_exec.py          # Consultas e gravação transacional
+    sync_database.py          # Consultas e gravação transacional
     config.py          # Leitura do .env
-    setup_db.py        # Execução do SQL pelo administrador
+    database_setup.py        # Execução do SQL pelo administrador
     banco.sql          # Único arquivo SQL do projeto
     perguntas.json     # Carga opcional do Questionário de Perfil
     perfil_v1.json     # Pesos versionados da classificação
@@ -243,10 +243,10 @@ use um novo código:
 ```python
 import json
 from pathlib import Path
-from sis_questionario.bd_exec import cadastrar_questionario
+from sis_questionario.sync_database import register_questionnaire
 
 perguntas = json.loads(Path('satisfacao.json').read_text(encoding='utf-8'))
-cadastrar_questionario('satisfacao', 'Pesquisa de satisfação', perguntas)
+register_questionnaire('satisfacao', 'Pesquisa de satisfação', perguntas)
 ```
 
 Preserve perguntas e alternativas que já têm respostas. Para desativar um
